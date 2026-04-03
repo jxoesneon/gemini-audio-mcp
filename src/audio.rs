@@ -141,6 +141,10 @@ let processing_output_path = if output_path == input_path {
 let mut command = Command::new("ffmpeg");
 command.arg("-i").arg(wav_path);
 
+// Explicitly specify output format if using a .tmp extension
+if processing_output_path != final_output_path {
+    command.arg("-f").arg(&format_lower);
+}
 // Apply options if provided
 if let Some(opts) = options {
     if let Some(br) = opts.bitrate {
