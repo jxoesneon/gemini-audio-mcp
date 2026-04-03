@@ -11,8 +11,11 @@ Our mission is to provide an immersive, AI-powered audio generation layer for an
 
 ## ✨ Key Features
 
--   **🌊 Dynamic Soundscapes**: Generate complex environmental audio (rain, forests, busy streets, sci-fi atmospheres) using the latest Gemini multimodal models.
--   **🔁 Infinite Looping**: Automatically generates seamless, loopable audio assets for continuous background immersion.
+-   **🌊 Dynamic Soundscapes**: Generate complex environmental audio using the latest Gemini 2.5 Native Audio models.
+-   **🎵 Professional Music**: High-fidelity music production via Google's **Lyria 3** models:
+    -   **Lyria 3 Pro**: Full song generation with structural coherence ($0.08/req).
+    -   **Lyria 3 Clip**: Low-latency clips and rhythmic loops ($0.04/req).
+-   **🔁 Infinite Looping**: Seamless, click-free looping with 100ms micro-crossfades.
 -   **🔀 Smooth Crossfades**: Transition between two different soundscapes with customizable crossfade durations.
 -   **📂 Universal Formats**: Export audio to a variety of formats (WAV, MP3, OGG, FLAC) powered by FFmpeg.
 -   **▶️ Auto-play Integration**: Instantly play generated audio through your system's default player upon completion.

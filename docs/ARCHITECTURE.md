@@ -5,18 +5,21 @@
 ### 1. MCP Server (`src/main.rs`)
 - Exposes tools:
   - `generate_soundscape(prompt, duration, format)`
-  - `transition_soundscape(from_prompt, to_prompt, transition_duration, final_duration, format)`
+  - `generate_music(prompt, model, format)`
+  - `transition_soundscape(from_prompt, to_prompt, transition_duration, format)`
+  - `configure(...)`, `play_audio(path)`, `cleanup_assets()`, `check_dependencies()`
 - Handles the JSON-RPC lifecycle and dispatches to the internal modules.
 
-### 2. Gemini Live Client (`src/gemini.rs`)
-- Manages WebSocket sessions with `models/gemini-2.5-flash-native-audio-latest`.
-- Handles binary JSON/BSON decoding.
-- Aggregates PCM chunks.
+### 2. Gemini & Lyria Client (`src/gemini.rs`)
+- **WebSocket (Soundscapes)**: Manages sessions with `models/gemini-2.5-flash-native-audio-latest`. Handles binary JSON/BSON decoding and PCM aggregation.
+- **REST (Music)**: Interfaces with Google's Lyria 3 models:
+  - `lyria-3-pro-preview`: $0.08 per request (Full songs).
+  - `lyria-3-clip-preview`: $0.04 per request (30s clips/loops).
 
 ### 3. Audio Processor (`src/audio.rs`)
-- **Capturing**: Initial capture to WAV via `hound`.
-- **Conversion**: Uses `std::process::Command` to invoke `ffmpeg` for fast, high-quality encoding into 10 formats.
-- **Looping**: Logic to repeat audio samples to meet a target duration.
+- **Encoding**: Uses direct Stdin Piping to FFmpeg for high-performance encoding.
+- **Transcoding**: High-quality resampling and format conversion via FFmpeg command-line tools.
+- **Looping**: Optimized Rust logic to repeat audio samples with 100ms micro-crossfades to meet target durations.
 
 ### 4. Mixer Module (`src/mixer.rs`) - *NEW*
 - Implements linear or equal-power crossfading between two PCM buffers.

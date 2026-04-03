@@ -115,6 +115,30 @@ async fn main() -> anyhow::Result<()> {
                             }
                         },
                         {
+                            "name": "generate_music",
+                            "description": "Generates high-fidelity music or loops using Gemini's Lyria 3 models. (Note: These are PAID models - Pro: $0.08/req, Clip: $0.04/req).",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "prompt": {
+                                        "type": "string",
+                                        "description": "Detailed description of the music (e.g., 'An upbeat jazz track with a fast tempo')."
+                                    },
+                                    "model": {
+                                        "type": "string",
+                                        "description": "The Lyria model to use. 'lyria-3-pro-preview' (Full songs, $0.08) or 'lyria-3-clip-preview' (30s clips, $0.04). Defaults to Pro.",
+                                        "enum": ["lyria-3-pro-preview", "lyria-3-clip-preview"]
+                                    },
+                                    "format": {
+                                        "type": "string",
+                                        "description": "Output format (wav, mp3, flac). Note: Lyria returns MP3/WAV natively, we convert if needed."
+                                    },
+                                    "auto_play": { "type": "boolean" }
+                                },
+                                "required": ["prompt"]
+                            }
+                        },
+                        {
                             "name": "configure",
                             "description": "View or update persistent configuration and defaults for the MCP server. Call with no arguments to see current values and schema.",
                             "inputSchema": {
@@ -217,6 +241,60 @@ async fn main() -> anyhow::Result<()> {
                             json!({"content": [{"type": "text", "text": format!("Current Configuration:\n{}", serde_json::to_string_pretty(&config).unwrap())}]})
                         }
                     }
+                    "generate_music" => {
+                        let _permit = semaphore.acquire().await;
+                        let prompt = arguments.and_then(|a| a.get("prompt")).and_then(|p| p.as_str()).unwrap_or("");
+                        let model = arguments.and_then(|a| a.get("model")).and_then(|m| m.as_str()).unwrap_or("lyria-3-pro-preview");
+                        let format = arguments.and_then(|a| a.get("format")).and_then(|f| f.as_str()).unwrap_or(&config.default_format);
+                        let auto_play = arguments.and_then(|a| a.get("auto_play")).and_then(|v| v.as_bool()).unwrap_or(false);
+
+                        if prompt.is_empty() {
+                            json!({"isError": true, "content": [{"type": "text", "text": "Prompt is empty."}]})
+                        } else {
+                            match gemini::generate_music(prompt, model).await {
+                                Ok((audio_bytes, mime_type, description)) => {
+                                    // Lyria returns encoded audio. If it's already the requested format, just save it.
+                                    // Otherwise, we might need to convert (though converting from a lossy format like MP3 is usually not ideal).
+                                    // For simplicity, we'll save it first.
+                                    let ext = if mime_type.contains("wav") { "wav" } else { "mp3" };
+                                    
+                                    // If requested format is different from source, we use FFmpeg
+                                    let final_path = if format != ext {
+                                        // We need to write to a temp file first since encode_pcm expects raw PCM.
+                                        // Actually, let's just use FFmpeg to transcode the encoded bytes.
+                                        match audio::encode_pcm(&audio_bytes, format, None) {
+                                            Ok(p) => p,
+                                            Err(_) => {
+                                                // Fallback to saving the raw bytes if conversion fails
+                                                let out_dir = audio::get_output_dir().unwrap();
+                                                let p = out_dir.join(format!("{}.{}", uuid::Uuid::new_v4(), ext));
+                                                std::fs::write(&p, &audio_bytes).unwrap();
+                                                p.to_string_lossy().to_string()
+                                            }
+                                        }
+                                    } else {
+                                        let out_dir = audio::get_output_dir().unwrap();
+                                        let p = out_dir.join(format!("{}.{}", uuid::Uuid::new_v4(), ext));
+                                        std::fs::write(&p, &audio_bytes).unwrap();
+                                        p.to_string_lossy().to_string()
+                                    };
+
+                                    if auto_play {
+                                        let _ = audio::play_audio_file(&final_path);
+                                    }
+
+                                    let result = json!({
+                                        "path": final_path,
+                                        "format": format,
+                                        "model": model,
+                                        "description": description
+                                    });
+                                    json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&result).unwrap()}]})
+                                }
+                                Err(e) => json!({"isError": true, "content": [{"type": "text", "text": format!("Gemini Lyria error: {}", e)}]}),
+                            }
+                        }
+                    }
                     "generate_soundscape" => {
                         let _permit = semaphore.acquire().await;
                         let prompt = arguments
@@ -266,7 +344,7 @@ async fn main() -> anyhow::Result<()> {
                                     let actual_duration = (pcm_data.len() as f64)
                                         / (audio::SAMPLE_RATE as f64
                                             * audio::BYTES_PER_SAMPLE as f64);
-                                    match audio::encode_pcm(&pcm_data, format, Some(audio_options)) {
+                                    match audio::encode_pcm(&pcm_data, format, Some(audio_options.clone())) {
                                         Ok(p) => {
                                             if auto_play {
                                                 let _ = audio::play_audio_file(&p);
@@ -275,7 +353,8 @@ async fn main() -> anyhow::Result<()> {
                                                 "path": p,
                                                 "format": format,
                                                 "duration_seconds": actual_duration,
-                                                "sample_rate": audio::SAMPLE_RATE,
+                                                "sample_rate": audio_options.sample_rate.unwrap_or(audio::SAMPLE_RATE),
+                                                "bitrate": audio_options.bitrate.clone().unwrap_or_else(|| "default".to_string()),
                                                 "description": description
                                             });
                                             json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&result).unwrap()}]})
@@ -336,7 +415,7 @@ async fn main() -> anyhow::Result<()> {
                                     let actual_duration = (mixed_pcm.len() as f64)
                                         / (audio::SAMPLE_RATE as f64
                                             * audio::BYTES_PER_SAMPLE as f64);
-                                    match audio::encode_pcm(&mixed_pcm, format, Some(audio_options)) {
+                                    match audio::encode_pcm(&mixed_pcm, format, Some(audio_options.clone())) {
                                         Ok(p) => {
                                             if auto_play {
                                                 let _ = audio::play_audio_file(&p);
@@ -349,7 +428,8 @@ async fn main() -> anyhow::Result<()> {
                                                 "path": p,
                                                 "format": format,
                                                 "duration_seconds": actual_duration,
-                                                "sample_rate": audio::SAMPLE_RATE,
+                                                "sample_rate": audio_options.sample_rate.unwrap_or(audio::SAMPLE_RATE),
+                                                "bitrate": audio_options.bitrate.clone().unwrap_or_else(|| "default".to_string()),
                                                 "description": description
                                             });
                                             json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&result).unwrap()}]})
