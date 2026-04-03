@@ -1,5 +1,5 @@
 # Stage 1: Build the Rust binary
-FROM rust:1.80-slim-bullseye AS builder
+FROM rust:slim-bookworm AS builder
 
 WORKDIR /usr/src/app
 
@@ -21,7 +21,7 @@ COPY src ./src
 RUN cargo build --release
 
 # Stage 2: Final runtime image
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 WORKDIR /app
 
@@ -38,7 +38,7 @@ LABEL org.opencontainers.image.vendor="jxoesneon"
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     ca-certificates \
-    libssl1.1 \
+    libssl3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy binary from builder
