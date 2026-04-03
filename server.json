@@ -9,9 +9,8 @@
   "version": "0.1.0",
   "packages": [
     {
-      "registryType": "npm",
-      "identifier": "gemini-audio-mcp",
-      "version": "0.1.0",
+      "registryType": "oci",
+      "identifier": "ghcr.io/jxoesneon/gemini-audio-mcp:v0.1.0",
       "transport": {
         "type": "stdio"
       },
