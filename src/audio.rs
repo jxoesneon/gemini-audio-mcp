@@ -119,42 +119,60 @@ pub fn convert_to_format(
     if format_lower == "wav" && options.is_none() {
         return Ok(wav_path.to_string());
     }
+let mut output_path = input_path.clone();
+output_path.set_extension(&format_lower);
 
-    let mut output_path = input_path.clone();
-    output_path.set_extension(&format_lower);
-
-    // If target is same as source and no options, return input
-    if output_path == input_path && options.is_none() {
-        return Ok(wav_path.to_string());
-    }
-
-    let mut command = Command::new("ffmpeg");
-    command.arg("-i").arg(wav_path);
-
-    if let Some(opts) = options {
-        if let Some(br) = opts.bitrate {
-            command.arg("-b:a").arg(br);
-        }
-        if let Some(sr) = opts.sample_rate {
-            command.arg("-ar").arg(sr.to_string());
-        }
-        if let Some(ch) = opts.channels {
-            command.arg("-ac").arg(ch.to_string());
-        }
-    }
-
-    let status = command
-        .arg("-y")
-        .arg(&output_path)
-        .status()
-        .context("Failed to execute ffmpeg")?;
-
-    if !status.success() {
-        anyhow::bail!("ffmpeg failed to convert {} to {}", wav_path, format_lower);
-    }
-
-    Ok(output_path.to_string_lossy().to_string())
+// If target is same as source and no options, return input
+if output_path == input_path && options.is_none() {
+    return Ok(wav_path.to_string());
 }
+
+// FFmpeg cannot read and write to the same file. 
+// If output_path == input_path, we must use a temporary file.
+let final_output_path = output_path.clone();
+let processing_output_path = if output_path == input_path {
+    let mut tmp = output_path.clone();
+    tmp.set_extension(format!("{}.tmp", format_lower));
+    tmp
+} else {
+    output_path
+};
+
+let mut command = Command::new("ffmpeg");
+command.arg("-i").arg(wav_path);
+
+// Apply options if provided
+if let Some(opts) = options {
+    if let Some(br) = opts.bitrate {
+        command.arg("-b:a").arg(br);
+    }
+    if let Some(sr) = opts.sample_rate {
+        command.arg("-ar").arg(sr.to_string());
+    }
+    if let Some(ch) = opts.channels {
+        command.arg("-ac").arg(ch.to_string());
+    }
+}
+
+let status = command
+    .arg("-y") // Overwrite if exists
+    .arg(&processing_output_path)
+    .status()
+    .context("Failed to execute ffmpeg")?;
+
+if !status.success() {
+    anyhow::bail!("ffmpeg failed to convert {} to {}", wav_path, format_lower);
+}
+
+// If we used a temporary file, rename it to the final path
+if processing_output_path != final_output_path {
+    fs::rename(&processing_output_path, &final_output_path)
+        .context("Failed to rename temporary conversion file")?;
+}
+
+Ok(final_output_path.to_string_lossy().to_string())
+}
+
 
 /// Plays an audio file using the system's default player.
 pub fn play_audio_file(path: &str) -> anyhow::Result<()> {
