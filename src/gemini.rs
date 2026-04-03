@@ -35,7 +35,7 @@ pub async fn generate_audio(
         }
     });
 
-    write.send(Message::Text(setup.to_string())).await?;
+    write.send(Message::Text(setup.to_string().into())).await?;
 
     // Wait for setupComplete response from server
     while let Some(msg) = read.next().await {
@@ -43,9 +43,9 @@ pub async fn generate_audio(
         let resp: Value = match msg {
             Message::Text(text) => serde_json::from_str(&text)?,
             Message::Binary(bin) => {
-                if let Ok(text) = String::from_utf8(bin.clone()) {
+                if let Ok(text) = String::from_utf8(bin.to_vec()) {
                     serde_json::from_str(&text)?
-                } else if let Ok(doc) = bson::Document::from_reader(&mut bin.as_slice()) {
+                } else if let Ok(doc) = bson::Document::from_reader(&mut bin.as_ref()) {
                     serde_json::from_value(serde_json::to_value(doc)?)?
                 } else {
                     continue;
@@ -72,7 +72,7 @@ pub async fn generate_audio(
             "turnComplete": true
         }
     });
-    write.send(Message::Text(content.to_string())).await?;
+    write.send(Message::Text(content.to_string().into())).await?;
     let mut audio_bytes = Vec::new();
     let mut description = String::new();
 
@@ -82,20 +82,21 @@ pub async fn generate_audio(
         let resp: Value = match msg {
             Message::Text(text) => serde_json::from_str(&text)?,
             Message::Binary(bin) => {
-                if let Ok(text) = String::from_utf8(bin.clone()) {
+                if let Ok(text) = String::from_utf8(bin.to_vec()) {
                     serde_json::from_str(&text)?
-                } else if let Ok(doc) = bson::Document::from_reader(&mut bin.as_slice()) {
+                } else if let Ok(doc) = bson::Document::from_reader(&mut bin.as_ref()) {
                     serde_json::from_value(serde_json::to_value(doc)?)?
                 } else {
                     continue;
                 }
             }
             Message::Ping(_) => {
-                write.send(Message::Pong(vec![])).await?;
+                write.send(Message::Pong(vec![].into())).await?;
                 continue;
             }
             _ => continue,
         };
+
 
         if let Some(server_content) = resp.get("serverContent") {
             if let Some(model_turn) = server_content.get("modelTurn") {
