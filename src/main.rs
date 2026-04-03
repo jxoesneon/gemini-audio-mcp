@@ -1,0 +1,456 @@
+mod audio;
+mod config;
+mod gemini;
+mod mixer;
+
+use config::Config;
+use serde_json::{json, Value};
+use std::io::{self, BufRead, Write};
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::Semaphore;
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt::init();
+
+    // Load persistent configuration
+    let mut config = Config::load();
+
+    // Concurrency control: limit to 1 concurrent session to prevent 429 errors
+    let semaphore = Arc::new(Semaphore::new(1));
+
+    // Startup check for FFmpeg
+    if let Err(e) = audio::ensure_ffmpeg() {
+        tracing::warn!("{}", e);
+    }
+
+    // Automatic asset cleanup on startup
+    if let Ok(count) = audio::cleanup_assets(Duration::from_secs(config.auto_cleanup_hours * 3600))
+    {
+        if count > 0 {
+            tracing::info!("Cleaned up {} old audio assets.", count);
+        }
+    }
+
+    let stdin = io::stdin();
+    let mut stdout = io::stdout();
+
+    for line_result in stdin.lock().lines() {
+        let line = match line_result {
+            Ok(l) => l,
+            Err(_) => break,
+        };
+
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        let req: Value = match serde_json::from_str(&line) {
+            Ok(r) => r,
+            Err(_) => continue,
+        };
+
+        let id = req.get("id").cloned();
+        let method = req.get("method").and_then(|m| m.as_str()).unwrap_or("");
+
+        let response = match method {
+            "initialize" => {
+                json!({
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {
+                        "tools": {}
+                    },
+                    "serverInfo": {
+                        "name": "gemini-audio-mcp",
+                        "version": "0.1.0"
+                    }
+                })
+            }
+            "notifications/initialized" => {
+                continue; // No response for notifications
+            }
+            "tools/list" => {
+                json!({
+                    "tools": [
+                        {
+                            "name": "generate_soundscape",
+                            "description": "Generates a high-quality environmental soundscape using Gemini 2.0 Multimodal Live API. Uses persistent defaults for format/quality if not specified.",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "prompt": {
+                                        "type": "string",
+                                        "description": "The prompt describing the soundscape."
+                                    },
+                                    "duration": {
+                                        "type": "number",
+                                        "description": "Optional duration in seconds. Overrides default if provided."
+                                    },
+                                    "format": {
+                                        "type": "string",
+                                        "description": "Optional output format (wav, mp3, ogg, flac, etc.)."
+                                    },
+                                    "bitrate": { "type": "string" },
+                                    "sample_rate": { "type": "number" },
+                                    "channels": { "type": "number" },
+                                    "auto_play": { "type": "boolean", "description": "If true, automatically plays the generated audio." }
+                                },
+                                "required": ["prompt"]
+                            }
+                        },
+                        {
+                            "name": "transition_soundscape",
+                            "description": "Generates two soundscapes and crossfades between them.",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "from_prompt": { "type": "string" },
+                                    "to_prompt": { "type": "string" },
+                                    "transition_duration": { "type": "number", "description": "Defaults to config value." },
+                                    "format": { "type": "string" },
+                                    "auto_play": { "type": "boolean", "description": "If true, automatically plays the generated audio." }
+                                },
+                                "required": ["from_prompt", "to_prompt"]
+                            }
+                        },
+                        {
+                            "name": "configure",
+                            "description": "View or update persistent configuration and defaults for the MCP server. Call with no arguments to see current values and schema.",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "default_format": { "type": "string", "description": "Default file extension (e.g., 'mp3')." },
+                                    "default_duration": { "type": "number" },
+                                    "default_bitrate": { "type": "string" },
+                                    "default_sample_rate": { "type": "number" },
+                                    "default_channels": { "type": "number" },
+                                    "default_transition_duration": { "type": "number" },
+                                    "auto_cleanup_hours": { "type": "number" }
+                                }
+                            }
+                        },
+                        {
+                            "name": "play_audio",
+                            "description": "Plays an audio file using the system's default player.",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "path": { "type": "string" }
+                                },
+                                "required": ["path"]
+                            }
+                        },
+                        {
+                            "name": "cleanup_assets",
+                            "description": "Deletes generated audio files older than a specified age.",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "max_age_hours": { "type": "number" }
+                                }
+                            }
+                        },
+                        {
+                            "name": "check_dependencies",
+                            "description": "Checks if external dependencies like FFmpeg are installed.",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {}
+                            }
+                        }
+                    ]
+                })
+            }
+            "tools/call" => {
+                let params = req.get("params");
+                let name = params
+                    .and_then(|p| p.get("name"))
+                    .and_then(|n| n.as_str())
+                    .unwrap_or("");
+                let arguments = params.and_then(|p| p.get("arguments"));
+
+                match name {
+                    "configure" => {
+                        if let Some(args) = arguments {
+                            if !args.as_object().map(|o| o.is_empty()).unwrap_or(true) {
+                                // Update config
+                                if let Some(v) = args.get("default_format").and_then(|v| v.as_str())
+                                {
+                                    config.default_format = v.to_string();
+                                }
+                                if let Some(v) = args.get("default_duration") {
+                                    config.default_duration = v.as_u64().map(|v| v as u32);
+                                }
+                                if let Some(v) =
+                                    args.get("default_bitrate").and_then(|v| v.as_str())
+                                {
+                                    config.default_bitrate = Some(v.to_string());
+                                }
+                                if let Some(v) = args.get("default_sample_rate") {
+                                    config.default_sample_rate = v.as_u64().map(|v| v as u32);
+                                }
+                                if let Some(v) = args.get("default_channels") {
+                                    config.default_channels = v.as_u64().map(|v| v as u32);
+                                }
+                                if let Some(v) = args.get("default_transition_duration") {
+                                    config.default_transition_duration =
+                                        v.as_u64().unwrap_or(5) as u32;
+                                }
+                                if let Some(v) = args.get("auto_cleanup_hours") {
+                                    config.auto_cleanup_hours = v.as_u64().unwrap_or(24);
+                                }
+
+                                match config.save() {
+                                    Ok(_) => {
+                                        json!({"content": [{"type": "text", "text": format!("Configuration updated successfully:\n{}", serde_json::to_string_pretty(&config).unwrap())}]})
+                                    }
+                                    Err(e) => {
+                                        json!({"isError": true, "content": [{"type": "text", "text": format!("Failed to save config: {}", e)}]})
+                                    }
+                                }
+                            } else {
+                                // List config
+                                json!({"content": [{"type": "text", "text": format!("Current Configuration:\n{}\n\nYou can update these by passing them as arguments to this tool.", serde_json::to_string_pretty(&config).unwrap())}]})
+                            }
+                        } else {
+                            json!({"content": [{"type": "text", "text": format!("Current Configuration:\n{}", serde_json::to_string_pretty(&config).unwrap())}]})
+                        }
+                    }
+                    "generate_soundscape" => {
+                        let _permit = semaphore.acquire().await;
+                        let prompt = arguments
+                            .and_then(|a| a.get("prompt"))
+                            .and_then(|p| p.as_str())
+                            .unwrap_or("");
+                        let duration = arguments
+                            .and_then(|a| a.get("duration"))
+                            .and_then(|d| d.as_u64())
+                            .map(|d| d as u32)
+                            .or(config.default_duration);
+                        let format = arguments
+                            .and_then(|a| a.get("format"))
+                            .and_then(|f| f.as_str())
+                            .unwrap_or(&config.default_format);
+                        let auto_play = arguments
+                            .and_then(|a| a.get("auto_play"))
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false);
+
+                        let audio_options = audio::AudioOptions {
+                            bitrate: arguments
+                                .and_then(|a| a.get("bitrate"))
+                                .and_then(|v| v.as_str())
+                                .map(|s| s.to_string())
+                                .or(config.default_bitrate.clone()),
+                            sample_rate: arguments
+                                .and_then(|a| a.get("sample_rate"))
+                                .and_then(|v| v.as_u64())
+                                .map(|v| v as u32)
+                                .or(config.default_sample_rate),
+                            channels: arguments
+                                .and_then(|a| a.get("channels"))
+                                .and_then(|v| v.as_u64())
+                                .map(|v| v as u32)
+                                .or(config.default_channels),
+                        };
+
+                        if prompt.is_empty() {
+                            json!({"isError": true, "content": [{"type": "text", "text": "Prompt is empty."}]})
+                        } else {
+                            match gemini::generate_audio(prompt, duration).await {
+                                Ok((mut pcm_data, description)) => {
+                                    if let Some(d) = duration {
+                                        pcm_data = audio::seamless_loop(pcm_data, d as f32);
+                                    }
+                                    let actual_duration = (pcm_data.len() as f64)
+                                        / (audio::SAMPLE_RATE as f64
+                                            * audio::BYTES_PER_SAMPLE as f64);
+                                    match audio::save_pcm_to_wav(&pcm_data) {
+                                        Ok(wav_path) => {
+                                            match audio::convert_to_format(
+                                                &wav_path,
+                                                format,
+                                                Some(audio_options),
+                                            ) {
+                                                Ok(p) => {
+                                                    if p != wav_path {
+                                                        let _ = std::fs::remove_file(&wav_path);
+                                                    }
+                                                    if auto_play {
+                                                        let _ = audio::play_audio_file(&p);
+                                                    }
+                                                    let result = json!({
+                                                        "path": p,
+                                                        "format": format,
+                                                        "duration_seconds": actual_duration,
+                                                        "sample_rate": audio::SAMPLE_RATE,
+                                                        "description": description
+                                                    });
+                                                    json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&result).unwrap()}]})
+                                                }
+                                                Err(e) => {
+                                                    json!({"isError": true, "content": [{"type": "text", "text": format!("Conversion error: {}", e)}]})
+                                                }
+                                            }
+                                        }
+                                        Err(e) => {
+                                            json!({"isError": true, "content": [{"type": "text", "text": format!("Save error: {}", e)}]})
+                                        }
+                                    }
+                                }
+                                Err(e) => {
+                                    json!({"isError": true, "content": [{"type": "text", "text": format!("Gemini error: {}", e)}]})
+                                }
+                            }
+                        }
+                    }
+                    "transition_soundscape" => {
+                        let _permit = semaphore.acquire().await;
+                        let from_prompt = arguments
+                            .and_then(|a| a.get("from_prompt"))
+                            .and_then(|p| p.as_str())
+                            .unwrap_or("");
+                        let to_prompt = arguments
+                            .and_then(|a| a.get("to_prompt"))
+                            .and_then(|p| p.as_str())
+                            .unwrap_or("");
+                        let transition_duration = arguments
+                            .and_then(|a| a.get("transition_duration"))
+                            .and_then(|d| d.as_u64())
+                            .map(|d| d as u32)
+                            .unwrap_or(config.default_transition_duration);
+                        let format = arguments
+                            .and_then(|a| a.get("format"))
+                            .and_then(|f| f.as_str())
+                            .unwrap_or(&config.default_format);
+                        let auto_play = arguments
+                            .and_then(|a| a.get("auto_play"))
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false);
+
+                        let audio_options = audio::AudioOptions {
+                            bitrate: config.default_bitrate.clone(),
+                            sample_rate: config.default_sample_rate,
+                            channels: config.default_channels,
+                        };
+
+                        if from_prompt.is_empty() || to_prompt.is_empty() {
+                            json!({"isError": true, "content": [{"type": "text", "text": "Missing prompts."}]})
+                        } else {
+                            match tokio::try_join!(
+                                gemini::generate_audio(from_prompt, None),
+                                gemini::generate_audio(to_prompt, None)
+                            ) {
+                                Ok(((pcm1, desc1), (pcm2, desc2))) => {
+                                    let transition_samples =
+                                        (transition_duration * audio::SAMPLE_RATE) as usize;
+                                    let mixed_pcm =
+                                        mixer::crossfade(&pcm1, &pcm2, transition_samples);
+                                    let actual_duration = (mixed_pcm.len() as f64)
+                                        / (audio::SAMPLE_RATE as f64
+                                            * audio::BYTES_PER_SAMPLE as f64);
+                                    match audio::save_pcm_to_wav(&mixed_pcm) {
+                                        Ok(wav_path) => {
+                                            match audio::convert_to_format(
+                                                &wav_path,
+                                                format,
+                                                Some(audio_options),
+                                            ) {
+                                                Ok(p) => {
+                                                    if p != wav_path {
+                                                        let _ = std::fs::remove_file(&wav_path);
+                                                    }
+                                                    if auto_play {
+                                                        let _ = audio::play_audio_file(&p);
+                                                    }
+                                                    let description = format!(
+                                                        "Transition from: {}\nTo: {}",
+                                                        desc1, desc2
+                                                    );
+                                                    let result = json!({
+                                                        "path": p,
+                                                        "format": format,
+                                                        "duration_seconds": actual_duration,
+                                                        "sample_rate": audio::SAMPLE_RATE,
+                                                        "description": description
+                                                    });
+                                                    json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&result).unwrap()}]})
+                                                }
+                                                Err(e) => {
+                                                    json!({"isError": true, "content": [{"type": "text", "text": format!("Conversion error: {}", e)}]})
+                                                }
+                                            }
+                                        }
+                                        Err(e) => {
+                                            json!({"isError": true, "content": [{"type": "text", "text": format!("Save error: {}", e)}]})
+                                        }
+                                    }
+                                }
+                                Err(e) => {
+                                    json!({"isError": true, "content": [{"type": "text", "text": format!("Gemini error: {}", e)}]})
+                                }
+                            }
+                        }
+                    }
+                    "play_audio" => {
+                        let path = arguments
+                            .and_then(|a| a.get("path"))
+                            .and_then(|p| p.as_str())
+                            .unwrap_or("");
+                        match audio::play_audio_file(path) {
+                            Ok(_) => {
+                                json!({"content": [{"type": "text", "text": "Playback started."}]})
+                            }
+                            Err(e) => {
+                                json!({"isError": true, "content": [{"type": "text", "text": format!("Playback error: {}", e)}]})
+                            }
+                        }
+                    }
+                    "cleanup_assets" => {
+                        let max_age_hours = arguments
+                            .and_then(|a| a.get("max_age_hours"))
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(config.auto_cleanup_hours);
+                        match audio::cleanup_assets(Duration::from_secs(max_age_hours * 3600)) {
+                            Ok(count) => {
+                                json!({"content": [{"type": "text", "text": format!("Deleted {} old files.", count)}]})
+                            }
+                            Err(e) => {
+                                json!({"isError": true, "content": [{"type": "text", "text": format!("Cleanup error: {}", e)}]})
+                            }
+                        }
+                    }
+                    "check_dependencies" => match audio::ensure_ffmpeg() {
+                        Ok(_) => json!({"content": [{"type": "text", "text": "Dependencies OK."}]}),
+                        Err(e) => {
+                            json!({"isError": true, "content": [{"type": "text", "text": e.to_string()}]})
+                        }
+                    },
+                    _ => {
+                        json!({"isError": true, "content": [{"type": "text", "text": format!("Unknown tool: {}", name)}]})
+                    }
+                }
+            }
+            _ => {
+                if id.is_some() {
+                    json!({"error": {"code": -32601, "message": "Method not found"}})
+                } else {
+                    continue;
+                }
+            }
+        };
+
+        if let Some(req_id) = id {
+            let res = if response.get("error").is_some() {
+                json!({"jsonrpc": "2.0", "id": req_id, "error": response["error"]})
+            } else {
+                json!({"jsonrpc": "2.0", "id": req_id, "result": response})
+            };
+            let res_str = serde_json::to_string(&res).unwrap();
+            writeln!(stdout, "{}", res_str).unwrap();
+            stdout.flush().unwrap();
+        }
+    }
+    Ok(())
+}

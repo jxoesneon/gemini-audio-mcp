@@ -1,0 +1,36 @@
+{
+  "name": "gemini-audio-mcp",
+  "version": "0.1.0",
+  "description": "High-quality environmental soundscape generator using Gemini 2.0 Multimodal Live API.",
+  "author": "Gemini Audio MCP Contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mcp-servers/gemini-audio-mcp"
+  },
+  "tools": [
+    {
+      "name": "generate_soundscape",
+      "description": "Generates a high-quality environmental soundscape using Gemini 2.0 Multimodal Live API."
+    },
+    {
+      "name": "transition_soundscape",
+      "description": "Generates two soundscapes and crossfades between them."
+    },
+    {
+      "name": "configure",
+      "description": "View or update persistent configuration and defaults."
+    },
+    {
+      "name": "play_audio",
+      "description": "Plays an audio file using the system's default player."
+    },
+    {
+      "name": "cleanup_assets",
+      "description": "Deletes generated audio files older than a specified age."
+    },
+    {
+      "name": "check_dependencies",
+      "description": "Checks if FFmpeg is installed."
+    }
+  ]
+}

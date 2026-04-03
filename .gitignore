@@ -1,0 +1,13 @@
+# Rust artifacts
+/target/
+
+# Local configuration and logs
+.env
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Output directory (even if unused in final version, good to keep ignored)
+/audio_outputs/
