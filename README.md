@@ -1,5 +1,8 @@
 # 🎵 Gemini Audio MCP
 
+[![gemini-audio-mcp MCP server](https://glama.ai/mcp/servers/jxoesneon/gemini-audio-mcp/badges/card.svg)](https://glama.ai/mcp/servers/jxoesneon/gemini-audio-mcp)
+[![gemini-audio-mcp MCP server](https://glama.ai/mcp/servers/jxoesneon/gemini-audio-mcp/badges/score.svg)](https://glama.ai/mcp/servers/jxoesneon/gemini-audio-mcp)
+
 **Gemini Audio MCP** is a high-performance Model Context Protocol (MCP) server that leverages the power of the **Gemini 2.0 Multimodal Live API** to generate high-fidelity, environmental soundscapes on-demand.
 
 ---
@@ -61,6 +64,42 @@ Add the server directly to your MCP client configuration using `npx`:
     ```
 3.  Configure your environment:
     Set the `GEMINI_API_KEY` environment variable in your MCP client or system.
+
+### 3. Docker (Cloud / Self-hosted)
+The server is available as a Docker image for easy deployment:
+```bash
+docker run -it \
+  -e GEMINI_API_KEY="YOUR_API_KEY" \
+  -v gemini-audio-data:/root/.local/share/gemini-audio-mcp \
+  ghcr.io/jxoesneon/gemini-audio-mcp:latest
+```
+
+To use it in your MCP client configuration:
+```json
+{
+  "mcpServers": {
+    "gemini-audio-docker": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "GEMINI_API_KEY=YOUR_API_KEY",
+        "ghcr.io/jxoesneon/gemini-audio-mcp:latest"
+      ]
+    }
+  }
+}
+```
+
+---
+
+## 🎮 Use Cases for Game Developers & Creators
+
+Gemini Audio MCP is designed to integrate seamlessly into modern creative workflows, particularly for those using **Unreal Engine 5**, **Godot**, or **Blender**:
+
+-   **🎲 Procedural Soundscapes**: Generate unique, non-repeating environmental audio for open-world games or dynamic levels.
+-   **🗣️ Dynamic Character Dialogue**: Use `generate_voice` with expressive direction to prototype character lines or create infinite NPC dialogue for RPGs.
+-   **🎥 Automated Sound Design**: Perfect for Blender artists looking to generate high-quality foley and background textures for animations directly through an AI-assisted pipeline.
+-   **⚡ Rapid Prototyping**: Instantly generate rhythmic loops and musical stings for game jams or early-stage development.
 
 ---
 

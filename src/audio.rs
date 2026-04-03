@@ -38,7 +38,7 @@ pub fn ensure_ffmpeg() -> anyhow::Result<()> {
 /// Returns the platform-specific directory for storing audio outputs.
 pub fn get_output_dir() -> anyhow::Result<PathBuf> {
     let base_dir = dirs::data_local_dir()
-        .or_else(|| dirs::home_dir())
+        .or_else(dirs::home_dir)
         .ok_or_else(|| anyhow!("Could not determine a suitable data directory"))?;
 
     let out_dir = base_dir.join("gemini-audio-mcp").join("audio_outputs");
@@ -94,11 +94,18 @@ pub fn transcode_encoded(
         .context("Failed to spawn ffmpeg for transcoding")?;
 
     {
-        let mut stdin = child.stdin.take().ok_or_else(|| anyhow!("Failed to open stdin"))?;
-        stdin.write_all(encoded_bytes).context("Failed to write to ffmpeg stdin")?;
+        let mut stdin = child
+            .stdin
+            .take()
+            .ok_or_else(|| anyhow!("Failed to open stdin"))?;
+        stdin
+            .write_all(encoded_bytes)
+            .context("Failed to write to ffmpeg stdin")?;
     }
 
-    let output = child.wait_with_output().context("Failed to wait for ffmpeg")?;
+    let output = child
+        .wait_with_output()
+        .context("Failed to wait for ffmpeg")?;
 
     if !output.status.success() {
         let err_msg = String::from_utf8_lossy(&output.stderr);
@@ -171,12 +178,19 @@ pub fn encode_pcm(
 
     // Write PCM data to ffmpeg's stdin
     {
-        let mut stdin = child.stdin.take().ok_or_else(|| anyhow!("Failed to open stdin"))?;
-        stdin.write_all(pcm_data).context("Failed to write to ffmpeg stdin")?;
+        let mut stdin = child
+            .stdin
+            .take()
+            .ok_or_else(|| anyhow!("Failed to open stdin"))?;
+        stdin
+            .write_all(pcm_data)
+            .context("Failed to write to ffmpeg stdin")?;
         // Stdin is closed here, signaling EOF to ffmpeg
     }
 
-    let output = child.wait_with_output().context("Failed to wait for ffmpeg")?;
+    let output = child
+        .wait_with_output()
+        .context("Failed to wait for ffmpeg")?;
 
     if !output.status.success() {
         let err_msg = String::from_utf8_lossy(&output.stderr);
@@ -185,7 +199,6 @@ pub fn encode_pcm(
 
     Ok(output_path.to_string_lossy().to_string())
 }
-
 
 /// Plays an audio file using the system's default player.
 pub fn play_audio_file(path: &str) -> anyhow::Result<()> {

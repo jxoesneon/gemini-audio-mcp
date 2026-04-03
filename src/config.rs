@@ -31,7 +31,7 @@ impl Default for Config {
 impl Config {
     pub fn get_path() -> Result<PathBuf> {
         let base_dir = dirs::data_local_dir()
-            .or_else(|| dirs::home_dir())
+            .or_else(dirs::home_dir)
             .ok_or_else(|| anyhow::anyhow!("Could not determine a suitable data directory"))?;
         let config_dir = base_dir.join("gemini-audio-mcp");
         if !config_dir.exists() {

@@ -1,6 +1,10 @@
 {
+  "$schema": "https://glama.ai/mcp/schemas/server.json",
   "name": "Gemini Audio MCP",
   "version": "0.1.0",
+  "maintainers": [
+    "jxoesneon"
+  ],
   "description": "High-performance AI audio, music, and voice generation using Gemini 2.5 and Lyria 3.",
   "longDescription": "The Gemini Audio MCP server brings enterprise-grade audio generation to your AI assistant. Powered by Gemini 2.5 Native Audio and Google's Lyria 3 music models, it allows for high-fidelity soundscape generation, expressive text-to-speech with voice direction, and full-length music production. Featuring seamless 100ms crossfade looping, direct FFmpeg piping for zero-latency encoding, and support for 10+ audio formats (MP3, WAV, FLAC, OPUS, etc.). Perfect for game developers, RPG players, and productivity tools.",
   "author": "jxoesneon",
@@ -26,27 +30,5 @@
     "soundscapes",
     "lyria"
   ],
-  "license": "MIT",
-  "tools": [
-    {
-      "name": "generate_soundscape",
-      "description": "Create immersive, high-quality environmental ambience with seamless looping."
-    },
-    {
-      "name": "generate_voice",
-      "description": "Convert text to expressive speech with natural voice direction."
-    },
-    {
-      "name": "generate_music",
-      "description": "Generate full songs or rhythmic loops via Lyria 3 Pro/Clip."
-    },
-    {
-      "name": "generate_sfx",
-      "description": "Create isolated sound effects and foley cues."
-    },
-    {
-      "name": "transition_soundscape",
-      "description": "Seamlessly crossfade between two distinct audio environments."
-    }
-  ]
+  "license": "MIT"
 }

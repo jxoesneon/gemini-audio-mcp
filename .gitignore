@@ -11,3 +11,6 @@ Thumbs.db
 
 # Output directory (even if unused in final version, good to keep ignored)
 /audio_outputs/
+.mcpregistry_*
+node_modules/
+package-lock.json

@@ -112,7 +112,7 @@ pub async fn generate_audio(
                             }
                             if let Some(text) = part.get("text").and_then(|t| t.as_str()) {
                                 if !description.is_empty() {
-                                    description.push_str("\n");
+                                    description.push('\n');
                                 }
                                 description.push_str(text);
                             }
@@ -174,17 +174,25 @@ pub async fn generate_music(prompt: &str, model: &str) -> Result<(Vec<u8>, Strin
 
     if let Some(candidates) = resp_json.get("candidates").and_then(|c| c.as_array()) {
         for candidate in candidates {
-            if let Some(parts) = candidate.get("content").and_then(|c| c.get("parts")).and_then(|p| p.as_array()) {
+            if let Some(parts) = candidate
+                .get("content")
+                .and_then(|c| c.get("parts"))
+                .and_then(|p| p.as_array())
+            {
                 for part in parts {
                     if let Some(inline_data) = part.get("inlineData") {
                         if let Some(data_str) = inline_data.get("data").and_then(|d| d.as_str()) {
                             audio_bytes = STANDARD.decode(data_str)?;
-                            mime_type = inline_data.get("mimeType").and_then(|m| m.as_str()).unwrap_or("audio/mp3").to_string();
+                            mime_type = inline_data
+                                .get("mimeType")
+                                .and_then(|m| m.as_str())
+                                .unwrap_or("audio/mp3")
+                                .to_string();
                         }
                     }
                     if let Some(text) = part.get("text").and_then(|t| t.as_str()) {
                         if !description.is_empty() {
-                            description.push_str("\n");
+                            description.push('\n');
                         }
                         description.push_str(text);
                     }

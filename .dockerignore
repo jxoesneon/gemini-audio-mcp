@@ -1,0 +1,15 @@
+target/
+node_modules/
+.git/
+.github/
+Dockerfile
+.dockerignore
+scripts/
+docs/
+*.png
+package.json
+package-lock.json
+index.js
+smithery.yaml
+server.json
+glama.json
