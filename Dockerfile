@@ -33,6 +33,7 @@ LABEL org.opencontainers.image.authors="jxoesneon"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.url="https://github.com/jxoesneon/gemini-audio-mcp"
 LABEL org.opencontainers.image.vendor="jxoesneon"
+LABEL io.modelcontextprotocol.server.name="io.github.jxoesneon/gemini-audio-mcp"
 
 # Install runtime dependencies: FFmpeg and SSL certificates
 RUN apt-get update && apt-get install -y \
