@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install system dependencies (FFmpeg)
+      run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+
+    - name: Check Formatting
+      run: cargo fmt -- --check
+
+    - name: Clippy Lints
+      run: cargo clippy -- -D warnings
+
+    - name: Build
+      run: cargo build --verbose
+
+    - name: Run Tests
+      # Note: tests requiring GEMINI_API_KEY are marked with #[ignore] and will be skipped here
+      run: cargo test --verbose
