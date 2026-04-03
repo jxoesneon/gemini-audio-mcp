@@ -146,8 +146,8 @@ pub async fn generate_music(prompt: &str, model: &str) -> Result<(Vec<u8>, Strin
 
     let client = reqwest::Client::new();
     let url = format!(
-        "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
-        model, api_key
+        "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent",
+        model
     );
 
     let request_body = json!({
@@ -161,6 +161,7 @@ pub async fn generate_music(prompt: &str, model: &str) -> Result<(Vec<u8>, Strin
 
     let response = client
         .post(url)
+        .header("x-goog-api-key", api_key)
         .json(&request_body)
         .send()
         .await?
