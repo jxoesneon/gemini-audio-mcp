@@ -1,48 +1,52 @@
 {
-  "name": "gemini-audio-mcp",
+  "name": "Gemini Audio MCP",
   "version": "0.1.0",
-  "description": "High-performance audio generation MCP server for Gemini 2.5 and Lyria 3.",
+  "description": "High-performance AI audio, music, and voice generation using Gemini 2.5 and Lyria 3.",
+  "longDescription": "The Gemini Audio MCP server brings enterprise-grade audio generation to your AI assistant. Powered by Gemini 2.5 Native Audio and Google's Lyria 3 music models, it allows for high-fidelity soundscape generation, expressive text-to-speech with voice direction, and full-length music production. Featuring seamless 100ms crossfade looping, direct FFmpeg piping for zero-latency encoding, and support for 10+ audio formats (MP3, WAV, FLAC, OPUS, etc.). Perfect for game developers, RPG players, and productivity tools.",
   "author": "jxoesneon",
   "repository": {
     "type": "git",
     "url": "https://github.com/jxoesneon/gemini-audio-mcp"
   },
+  "homepage": "https://github.com/jxoesneon/gemini-audio-mcp",
+  "categories": [
+    "Audio",
+    "Multimedia",
+    "Productivity",
+    "Creative Tools"
+  ],
+  "tags": [
+    "mcp-server",
+    "gemini-api",
+    "audio-generation",
+    "music-generation",
+    "text-to-speech",
+    "rust",
+    "ffmpeg",
+    "soundscapes",
+    "lyria"
+  ],
+  "license": "MIT",
   "tools": [
     {
       "name": "generate_soundscape",
-      "description": "Generates immersive environmental soundscapes using Gemini 2.0 Live."
+      "description": "Create immersive, high-quality environmental ambience with seamless looping."
     },
     {
       "name": "generate_voice",
-      "description": "Generates expressive speech and narration using Gemini 2.5 Native Audio."
+      "description": "Convert text to expressive speech with natural voice direction."
     },
     {
       "name": "generate_music",
-      "description": "Generates full songs or loops via Lyria 3 (PAID)."
+      "description": "Generate full songs or rhythmic loops via Lyria 3 Pro/Clip."
     },
     {
       "name": "generate_sfx",
-      "description": "Generates short sound effects via Lyria 3 Clip."
+      "description": "Create isolated sound effects and foley cues."
     },
     {
       "name": "transition_soundscape",
-      "description": "Generates two soundscapes and crossfades between them."
-    },
-    {
-      "name": "configure",
-      "description": "View or update persistent configuration and defaults."
-    },
-    {
-      "name": "play_audio",
-      "description": "Plays an audio file using the system's default player."
-    },
-    {
-      "name": "cleanup_assets",
-      "description": "Deletes generated audio files older than a specified age."
-    },
-    {
-      "name": "check_dependencies",
-      "description": "Checks if external dependencies like FFmpeg are installed."
+      "description": "Seamlessly crossfade between two distinct audio environments."
     }
   ]
 }
