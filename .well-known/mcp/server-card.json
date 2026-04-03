@@ -1,52 +1,80 @@
 {
-  "mcp": {
-    "version": "2024-11-05",
-    "tools": [
-      {
-        "name": "generate_soundscape",
-        "description": "Create immersive, high-quality environmental ambience with seamless looping.",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "prompt": { "type": "string", "description": "Description of the soundscape" },
-            "duration": { "type": "integer", "description": "Duration in seconds" },
-            "format": { "type": "string", "description": "Audio format (mp3, ogg, etc.)" }
-          },
-          "required": ["prompt"]
-        }
-      },
-      {
-        "name": "generate_voice",
-        "description": "Convert text to expressive speech with natural voice direction.",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "prompt": { "type": "string", "description": "Text to speak and voice direction" }
-          },
-          "required": ["prompt"]
-        }
-      },
-      {
-        "name": "generate_music",
-        "description": "Generate full songs or rhythmic loops via Lyria 3 Pro/Clip.",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "prompt": { "type": "string", "description": "Musical style and description" }
-          },
-          "required": ["prompt"]
-        }
-      }
-    ]
+  "serverInfo": {
+    "name": "Gemini Audio MCP",
+    "version": "0.1.0"
   },
-  "deployment": {
-    "type": "docker",
-    "image": "ghcr.io/jxoesneon/gemini-audio-mcp:latest",
-    "env": {
+  "configSchema": {
+    "type": "object",
+    "properties": {
       "GEMINI_API_KEY": {
+        "type": "string",
         "description": "Your Google AI Studio API Key",
-        "required": true
+        "x-from": "env"
+      }
+    },
+    "required": ["GEMINI_API_KEY"]
+  },
+  "tools": [
+    {
+      "name": "generate_soundscape",
+      "description": "Create immersive, high-quality environmental ambience with seamless looping.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prompt": { "type": "string", "description": "Description of the soundscape" },
+          "duration": { "type": "integer", "description": "Duration in seconds" },
+          "format": { "type": "string", "description": "Audio format (mp3, ogg, etc.)" }
+        },
+        "required": ["prompt"]
+      }
+    },
+    {
+      "name": "generate_voice",
+      "description": "Convert text to expressive speech with natural voice direction.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prompt": { "type": "string", "description": "Text to speak and voice direction" }
+        },
+        "required": ["prompt"]
+      }
+    },
+    {
+      "name": "generate_music",
+      "description": "Generate full songs or rhythmic loops via Lyria 3 Pro/Clip.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prompt": { "type": "string", "description": "Musical style and description" }
+        },
+        "required": ["prompt"]
+      }
+    },
+    {
+      "name": "generate_sfx",
+      "description": "Create isolated sound effects and foley cues.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prompt": { "type": "string", "description": "Description of the sound effect" }
+        },
+        "required": ["prompt"]
+      }
+    },
+    {
+      "name": "transition_soundscape",
+      "description": "Seamlessly crossfade between two distinct audio environments.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "from_prompt": { "type": "string", "description": "Initial environment prompt" },
+          "to_prompt": { "type": "string", "description": "Target environment prompt" },
+          "transition_duration": { "type": "integer", "description": "Crossfade duration in seconds" }
+        },
+        "required": ["from_prompt", "to_prompt"]
       }
     }
-  }
+  ],
+  "resources": [],
+  "prompts": []
 }
