@@ -1,6 +1,6 @@
 name: gemini-audio-mcp
 version: 0.1.0
-description: High-performance MCP server for Gemini 2.5 Native Audio and Lyria 3 music generation.
+description: High-performance MCP server for Gemini 2.5 Native Audio and Lyria 3 music generation. Requires FFmpeg installed on the system.
 readme: README.md
 author: jxoesneon
 license: MIT
