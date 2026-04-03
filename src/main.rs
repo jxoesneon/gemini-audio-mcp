@@ -75,7 +75,7 @@ async fn main() -> anyhow::Result<()> {
                     "tools": [
                         {
                             "name": "generate_soundscape",
-                            "description": "Generates a high-quality environmental soundscape using Gemini 2.0 Multimodal Live API. Uses persistent defaults for format/quality if not specified.",
+                            "description": "Generates immersive, high-quality environmental soundscapes (e.g., 'A rainy forest with distant thunder'). Best for background ambience and complex layered textures. Uses Gemini 2.0 Live.",
                             "inputSchema": {
                                 "type": "object",
                                 "properties": {
@@ -100,23 +100,31 @@ async fn main() -> anyhow::Result<()> {
                             }
                         },
                         {
-                            "name": "transition_soundscape",
-                            "description": "Generates two soundscapes and crossfades between them.",
+                            "name": "generate_voice",
+                            "description": "Generates expressive speech and narration from text. Best for scripts, character dialogue, and narration. Uses Gemini 2.5 Native Audio.",
                             "inputSchema": {
                                 "type": "object",
                                 "properties": {
-                                    "from_prompt": { "type": "string" },
-                                    "to_prompt": { "type": "string" },
-                                    "transition_duration": { "type": "number", "description": "Defaults to config value." },
-                                    "format": { "type": "string" },
+                                    "text": {
+                                        "type": "string",
+                                        "description": "The script or text to be read by the voice."
+                                    },
+                                    "voice_direction": {
+                                        "type": "string",
+                                        "description": "Optional instructions for the tone and style (e.g., 'Speak like a fast-talking auctioneer' or 'Use a whispery tone')."
+                                    },
+                                    "format": {
+                                        "type": "string",
+                                        "description": "Optional output format (wav, mp3, ogg, flac, etc.)."
+                                    },
                                     "auto_play": { "type": "boolean", "description": "If true, automatically plays the generated audio." }
                                 },
-                                "required": ["from_prompt", "to_prompt"]
+                                "required": ["text"]
                             }
                         },
                         {
                             "name": "generate_music",
-                            "description": "Generates high-fidelity music or loops using Gemini's Lyria 3 models. (Note: These are PAID models - Pro: $0.08/req, Clip: $0.04/req).",
+                            "description": "Generates full songs, loops, or musical segments. Best for melodic content, rhythm, and structured compositions. (PAID MODELS).",
                             "inputSchema": {
                                 "type": "object",
                                 "properties": {
@@ -131,7 +139,7 @@ async fn main() -> anyhow::Result<()> {
                                     },
                                     "format": {
                                         "type": "string",
-                                        "description": "Output format (wav, mp3, flac). Note: Lyria returns MP3/WAV natively, we convert if needed."
+                                        "description": "Output format (wav, mp3, flac)."
                                     },
                                     "auto_play": { "type": "boolean" }
                                 },
@@ -139,45 +147,79 @@ async fn main() -> anyhow::Result<()> {
                             }
                         },
                         {
+                            "name": "generate_sfx",
+                            "description": "Generates isolated, short-duration sound effects and foley (e.g., 'A laser blast' or 'Footsteps on gravel'). Best for specific one-shot audio cues. Uses Lyria-3-clip-preview.",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "prompt": {
+                                        "type": "string",
+                                        "description": "Description of the sound effect (e.g., 'A heavy metallic door slamming shut')."
+                                    },
+                                    "format": {
+                                        "type": "string",
+                                        "description": "Output format (wav, mp3, flac)."
+                                    },
+                                    "auto_play": { "type": "boolean" }
+                                },
+                                "required": ["prompt"]
+                            }
+                        },
+                        {
+                            "name": "transition_soundscape",
+                            "description": "Generates two distinct soundscapes and creates a smooth crossfade transition between them. Ideal for evolving scenes or changing environments.",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "from_prompt": { "type": "string" },
+                                    "to_prompt": { "type": "string" },
+                                    "transition_duration": { "type": "number", "description": "Duration of the crossfade in seconds. Defaults to config value." },
+                                    "format": { "type": "string" },
+                                    "auto_play": { "type": "boolean", "description": "If true, automatically plays the generated audio." }
+                                },
+                                "required": ["from_prompt", "to_prompt"]
+                            }
+                        },
+                        {
                             "name": "configure",
-                            "description": "View or update persistent configuration and defaults for the MCP server. Call with no arguments to see current values and schema.",
+                            "description": "View or update persistent server settings like default audio format, sample rate, and automatic cleanup intervals. Call with no arguments to see current values.",
                             "inputSchema": {
                                 "type": "object",
                                 "properties": {
                                     "default_format": { "type": "string", "description": "Default file extension (e.g., 'mp3')." },
-                                    "default_duration": { "type": "number" },
+                                    "default_duration": { "type": "number", "description": "Default duration for soundscapes in seconds." },
                                     "default_bitrate": { "type": "string" },
                                     "default_sample_rate": { "type": "number" },
                                     "default_channels": { "type": "number" },
                                     "default_transition_duration": { "type": "number" },
-                                    "auto_cleanup_hours": { "type": "number" }
+                                    "auto_cleanup_hours": { "type": "number", "description": "How often to clean up old audio files (in hours)." }
                                 }
                             }
                         },
                         {
                             "name": "play_audio",
-                            "description": "Plays an audio file using the system's default player.",
+                            "description": "Plays any local audio file using the system's default media player (e.g., 'afplay' on macOS).",
                             "inputSchema": {
                                 "type": "object",
                                 "properties": {
-                                    "path": { "type": "string" }
+                                    "path": { "type": "string", "description": "The absolute path to the audio file." }
                                 },
                                 "required": ["path"]
                             }
                         },
                         {
                             "name": "cleanup_assets",
-                            "description": "Deletes generated audio files older than a specified age.",
+                            "description": "Manually trigger deletion of generated audio assets that exceed a certain age (in hours) to save disk space.",
                             "inputSchema": {
                                 "type": "object",
                                 "properties": {
-                                    "max_age_hours": { "type": "number" }
+                                    "max_age_hours": { "type": "number", "description": "Files older than this will be deleted." }
                                 }
                             }
                         },
                         {
                             "name": "check_dependencies",
-                            "description": "Checks if external dependencies like FFmpeg are installed.",
+                            "description": "Verifies that the system has required external tools like FFmpeg installed and accessible.",
                             "inputSchema": {
                                 "type": "object",
                                 "properties": {}
@@ -292,6 +334,89 @@ async fn main() -> anyhow::Result<()> {
                                     json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&result).unwrap()}]})
                                 }
                                 Err(e) => json!({"isError": true, "content": [{"type": "text", "text": format!("Gemini Lyria error: {}", e)}]}),
+                            }
+                        }
+                    }
+                    "generate_sfx" => {
+                        let _permit = semaphore.acquire().await;
+                        let prompt = arguments.and_then(|a| a.get("prompt")).and_then(|p| p.as_str()).unwrap_or("");
+                        let model = "lyria-3-clip-preview";
+                        let format = arguments.and_then(|a| a.get("format")).and_then(|f| f.as_str()).unwrap_or(&config.default_format);
+                        let auto_play = arguments.and_then(|a| a.get("auto_play")).and_then(|v| v.as_bool()).unwrap_or(false);
+
+                        if prompt.is_empty() {
+                            json!({"isError": true, "content": [{"type": "text", "text": "Prompt is empty."}]})
+                        } else {
+                            match gemini::generate_music(prompt, model).await {
+                                Ok((audio_bytes, mime_type, description)) => {
+                                    let ext = if mime_type.contains("wav") { "wav" } else { "mp3" };
+                                    let final_path = if format != ext {
+                                        match audio::encode_pcm(&audio_bytes, format, None) {
+                                            Ok(p) => p,
+                                            Err(_) => {
+                                                let out_dir = audio::get_output_dir().unwrap();
+                                                let p = out_dir.join(format!("{}.{}", uuid::Uuid::new_v4(), ext));
+                                                std::fs::write(&p, &audio_bytes).unwrap();
+                                                p.to_string_lossy().to_string()
+                                            }
+                                        }
+                                    } else {
+                                        let out_dir = audio::get_output_dir().unwrap();
+                                        let p = out_dir.join(format!("{}.{}", uuid::Uuid::new_v4(), ext));
+                                        std::fs::write(&p, &audio_bytes).unwrap();
+                                        p.to_string_lossy().to_string()
+                                    };
+
+                                    if auto_play {
+                                        let _ = audio::play_audio_file(&final_path);
+                                    }
+
+                                    let result = json!({
+                                        "path": final_path,
+                                        "format": format,
+                                        "model": model,
+                                        "description": description
+                                    });
+                                    json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&result).unwrap()}]})
+                                }
+                                Err(e) => json!({"isError": true, "content": [{"type": "text", "text": format!("Gemini Lyria error: {}", e)}]}),
+                            }
+                        }
+                    }
+                    "generate_voice" => {
+                        let _permit = semaphore.acquire().await;
+                        let text = arguments.and_then(|a| a.get("text")).and_then(|p| p.as_str()).unwrap_or("");
+                        let direction = arguments.and_then(|a| a.get("voice_direction")).and_then(|p| p.as_str()).unwrap_or("");
+                        let format = arguments.and_then(|a| a.get("format")).and_then(|f| f.as_str()).unwrap_or(&config.default_format);
+                        let auto_play = arguments.and_then(|a| a.get("auto_play")).and_then(|v| v.as_bool()).unwrap_or(false);
+
+                        if text.is_empty() {
+                            json!({"isError": true, "content": [{"type": "text", "text": "Text is empty."}]})
+                        } else {
+                            let prompt = if direction.is_empty() {
+                                format!("Read the following text: {}", text)
+                            } else {
+                                format!("Text to read: {}\nVoice Direction: {}", text, direction)
+                            };
+
+                            match gemini::generate_audio(&prompt, None).await {
+                                Ok((pcm_data, description)) => {
+                                    match audio::encode_pcm(&pcm_data, format, None) {
+                                        Ok(p) => {
+                                            if auto_play {
+                                                let _ = audio::play_audio_file(&p);
+                                            }
+                                            let result = json!({
+                                                "path": p,
+                                                "format": format,
+                                                "description": description
+                                            });
+                                            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&result).unwrap()}]})
+                                        }
+                                        Err(e) => json!({"isError": true, "content": [{"type": "text", "text": format!("Encoding error: {}", e)}]}),
+                                    }
+                                }
+                                Err(e) => json!({"isError": true, "content": [{"type": "text", "text": format!("Gemini error: {}", e)}]}),
                             }
                         }
                     }
