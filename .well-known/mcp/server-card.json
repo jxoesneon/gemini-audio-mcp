@@ -1,0 +1,52 @@
+{
+  "mcp": {
+    "version": "2024-11-05",
+    "tools": [
+      {
+        "name": "generate_soundscape",
+        "description": "Create immersive, high-quality environmental ambience with seamless looping.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "prompt": { "type": "string", "description": "Description of the soundscape" },
+            "duration": { "type": "integer", "description": "Duration in seconds" },
+            "format": { "type": "string", "description": "Audio format (mp3, ogg, etc.)" }
+          },
+          "required": ["prompt"]
+        }
+      },
+      {
+        "name": "generate_voice",
+        "description": "Convert text to expressive speech with natural voice direction.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "prompt": { "type": "string", "description": "Text to speak and voice direction" }
+          },
+          "required": ["prompt"]
+        }
+      },
+      {
+        "name": "generate_music",
+        "description": "Generate full songs or rhythmic loops via Lyria 3 Pro/Clip.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "prompt": { "type": "string", "description": "Musical style and description" }
+          },
+          "required": ["prompt"]
+        }
+      }
+    ]
+  },
+  "deployment": {
+    "type": "docker",
+    "image": "ghcr.io/jxoesneon/gemini-audio-mcp:latest",
+    "env": {
+      "GEMINI_API_KEY": {
+        "description": "Your Google AI Studio API Key",
+        "required": true
+      }
+    }
+  }
+}
