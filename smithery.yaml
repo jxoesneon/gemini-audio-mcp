@@ -1,19 +1,25 @@
 name: gemini-audio-mcp
 version: 0.1.0
-description: A high-quality environmental soundscape generator using Gemini 2.0 Multimodal Live API.
+description: High-performance MCP server for Gemini 2.5 Native Audio and Lyria 3 music generation.
 readme: README.md
-author: Gemini Audio MCP Contributors
+author: jxoesneon
 license: MIT
-repository: https://github.com/mcp-servers/gemini-audio-mcp
+repository: https://github.com/jxoesneon/gemini-audio-mcp
 mcp:
   version: 2024-11-05
   tools:
     - name: generate_soundscape
-      description: Generates a high-quality environmental soundscape using Gemini 2.0 Multimodal Live API. Uses persistent defaults for format/quality if not specified.
+      description: Generates immersive environmental soundscapes using Gemini 2.0 Live.
+    - name: generate_voice
+      description: Generates expressive speech and narration from text using Gemini 2.5 Native Audio.
+    - name: generate_music
+      description: Generates full songs, loops, or musical segments via Lyria 3 (PAID).
+    - name: generate_sfx
+      description: Generates short sound effects and foley via Lyria 3 Clip.
     - name: transition_soundscape
       description: Generates two soundscapes and crossfades between them.
     - name: configure
-      description: View or update persistent configuration and defaults for the MCP server. Call with no arguments to see current values and schema.
+      description: View or update persistent configuration and defaults.
     - name: play_audio
       description: Plays an audio file using the system's default player.
     - name: cleanup_assets
@@ -25,8 +31,5 @@ install:
     command: cargo install --path .
 environment:
   GEMINI_API_KEY:
-    description: Your Gemini API Key.
+    description: Your Google API Key.
     required: true
-  FFMPEG_PATH:
-    description: Path to the FFmpeg binary (optional if in PATH).
-    required: false

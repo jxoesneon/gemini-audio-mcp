@@ -1,16 +1,28 @@
 {
   "name": "gemini-audio-mcp",
   "version": "0.1.0",
-  "description": "High-quality environmental soundscape generator using Gemini 2.0 Multimodal Live API.",
-  "author": "Gemini Audio MCP Contributors",
+  "description": "High-performance audio generation MCP server for Gemini 2.5 and Lyria 3.",
+  "author": "jxoesneon",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mcp-servers/gemini-audio-mcp"
+    "url": "https://github.com/jxoesneon/gemini-audio-mcp"
   },
   "tools": [
     {
       "name": "generate_soundscape",
-      "description": "Generates a high-quality environmental soundscape using Gemini 2.0 Multimodal Live API."
+      "description": "Generates immersive environmental soundscapes using Gemini 2.0 Live."
+    },
+    {
+      "name": "generate_voice",
+      "description": "Generates expressive speech and narration using Gemini 2.5 Native Audio."
+    },
+    {
+      "name": "generate_music",
+      "description": "Generates full songs or loops via Lyria 3 (PAID)."
+    },
+    {
+      "name": "generate_sfx",
+      "description": "Generates short sound effects via Lyria 3 Clip."
     },
     {
       "name": "transition_soundscape",
@@ -30,7 +42,7 @@
     },
     {
       "name": "check_dependencies",
-      "description": "Checks if FFmpeg is installed."
+      "description": "Checks if external dependencies like FFmpeg are installed."
     }
   ]
 }

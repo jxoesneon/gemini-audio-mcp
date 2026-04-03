@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build - ${{ matrix.platform.os }}
+    strategy:
+      matrix:
+        platform:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            name: gemini-audio-mcp-linux-x64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            name: gemini-audio-mcp-macos-x64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            name: gemini-audio-mcp-macos-arm64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            name: gemini-audio-mcp-windows-x64.exe
+
+    runs-on: ${{ matrix.platform.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.platform.target }}
+
+      - name: Rename binary
+        shell: bash
+        run: |
+          mkdir -p dist
+          if [ "${{ matrix.platform.os }}" = "windows-latest" ]; then
+            cp target/${{ matrix.platform.target }}/release/gemini-audio-mcp.exe dist/${{ matrix.platform.name }}
+          else
+            cp target/${{ matrix.platform.target }}/release/gemini-audio-mcp dist/${{ matrix.platform.name }}
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform.name }}
+          path: dist/${{ matrix.platform.name }}
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

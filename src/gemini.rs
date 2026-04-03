@@ -11,12 +11,11 @@ use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 /// Returns a tuple of (audio_bytes, description).
 pub async fn generate_audio(
     prompt: &str,
-    requested_duration: Option<u32>,
+    _requested_duration: Option<u32>,
 ) -> Result<(Vec<u8>, String)> {
     let api_key = env::var("GEMINI_API_KEY")
         .map_err(|_| anyhow!("GEMINI_API_KEY environment variable not set"))?;
 
-    // ... rest of setup ...
     let url = format!(
         "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key={}",
         api_key
@@ -27,7 +26,6 @@ pub async fn generate_audio(
     let (mut write, mut read) = ws_stream.split();
 
     // 1. Send Setup message
-    // Using the 2.5 Flash Native Audio model which is optimized for soundscapes and voice
     let setup = json!({
         "setup": {
             "model": "models/gemini-2.5-flash-native-audio-latest",
@@ -40,7 +38,6 @@ pub async fn generate_audio(
     write.send(Message::Text(setup.to_string())).await?;
 
     // Wait for setupComplete response from server
-    // Note: Gemini often sends JSON-RPC as Binary messages instead of Text
     while let Some(msg) = read.next().await {
         let msg = msg?;
         let resp: Value = match msg {
@@ -64,26 +61,18 @@ pub async fn generate_audio(
     }
 
     // 2. Send clientContent message with the user's prompt
-    // Tail Clipping Compensation: Request +1s if a duration is specified
-    let final_prompt = if let Some(d) = requested_duration {
-        format!("{} [System Instruction: Generate exactly {} seconds of audio. Ensure there is no fade out or silence at the end; continue the sound normally until the very end.]", prompt, d + 1)
-    } else {
-        prompt.to_string()
-    };
-
     let content = json!({
         "clientContent": {
             "turns": [
                 {
                     "role": "user",
-                    "parts": [{ "text": final_prompt }]
+                    "parts": [{ "text": prompt }]
                 }
             ],
             "turnComplete": true
         }
     });
     write.send(Message::Text(content.to_string())).await?;
-
     let mut audio_bytes = Vec::new();
     let mut description = String::new();
 
@@ -113,7 +102,6 @@ pub async fn generate_audio(
                 if let Some(parts) = model_turn.get("parts") {
                     if let Some(parts_arr) = parts.as_array() {
                         for part in parts_arr {
-                            // Extract audio data
                             if let Some(inline_data) = part.get("inlineData") {
                                 if let Some(data_str) =
                                     inline_data.get("data").and_then(|d| d.as_str())
@@ -122,7 +110,6 @@ pub async fn generate_audio(
                                     audio_bytes.extend(decoded);
                                 }
                             }
-                            // Extract text description (thought or explanation)
                             if let Some(text) = part.get("text").and_then(|t| t.as_str()) {
                                 if !description.is_empty() {
                                     description.push_str("\n");
@@ -134,7 +121,6 @@ pub async fn generate_audio(
                 }
             }
 
-            // If the turn is complete, we can stop listening
             if server_content.get("turnComplete") == Some(&json!(true)) {
                 tracing::info!(
                     "Turn complete, received {} bytes of audio",
@@ -152,12 +138,74 @@ pub async fn generate_audio(
     Ok((audio_bytes, description))
 }
 
+/// Generates high-fidelity music using Gemini's Lyria 3 models via REST API.
+/// Returns a tuple of (encoded_audio_bytes, mime_type, description).
+pub async fn generate_music(prompt: &str, model: &str) -> Result<(Vec<u8>, String, String)> {
+    let api_key = env::var("GEMINI_API_KEY")
+        .map_err(|_| anyhow!("GEMINI_API_KEY environment variable not set"))?;
+
+    let client = reqwest::Client::new();
+    let url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
+        model, api_key
+    );
+
+    let request_body = json!({
+        "contents": [{
+            "parts": [{ "text": prompt }]
+        }],
+        "generationConfig": {
+            "response_modalities": ["AUDIO", "TEXT"]
+        }
+    });
+
+    let response = client
+        .post(url)
+        .json(&request_body)
+        .send()
+        .await?
+        .error_for_status()?;
+
+    let resp_json: Value = response.json().await?;
+
+    let mut audio_bytes = Vec::new();
+    let mut mime_type = String::new();
+    let mut description = String::new();
+
+    if let Some(candidates) = resp_json.get("candidates").and_then(|c| c.as_array()) {
+        for candidate in candidates {
+            if let Some(parts) = candidate.get("content").and_then(|c| c.get("parts")).and_then(|p| p.as_array()) {
+                for part in parts {
+                    if let Some(inline_data) = part.get("inlineData") {
+                        if let Some(data_str) = inline_data.get("data").and_then(|d| d.as_str()) {
+                            audio_bytes = STANDARD.decode(data_str)?;
+                            mime_type = inline_data.get("mimeType").and_then(|m| m.as_str()).unwrap_or("audio/mp3").to_string();
+                        }
+                    }
+                    if let Some(text) = part.get("text").and_then(|t| t.as_str()) {
+                        if !description.is_empty() {
+                            description.push_str("\n");
+                        }
+                        description.push_str(text);
+                    }
+                }
+            }
+        }
+    }
+
+    if audio_bytes.is_empty() {
+        return Err(anyhow!("No music data received from Gemini API. Note: Lyria models require a paid Tier or specific preview access."));
+    }
+
+    Ok((audio_bytes, mime_type, description))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[tokio::test]
-    #[ignore] // Requires a valid GEMINI_API_KEY and internet access
+    #[ignore]
     async fn test_generate_audio() {
         let _ = tracing_subscriber::fmt::try_init();
         if std::env::var("GEMINI_API_KEY").is_err() {

@@ -33,7 +33,23 @@ Our mission is to provide an immersive, AI-powered audio generation layer for an
 2.  **Rust Toolchain**: Required for building the project (`cargo`).
 3.  **Gemini API Key**: Obtain your key from the [Google AI Studio](https://aistudio.google.com/).
 
-### Setup
+### 1. NPM / NPX (Recommended for non-Rust users)
+Add the server directly to your MCP client configuration using `npx`:
+```json
+{
+  "mcpServers": {
+    "gemini-audio": {
+      "command": "npx",
+      "args": ["-y", "gemini-audio-mcp"],
+      "env": {
+        "GEMINI_API_KEY": "YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+### 2. Manual Installation (Rust)
 1.  Clone the repository:
     ```bash
     git clone https://github.com/mcp-servers/gemini-audio-mcp.git

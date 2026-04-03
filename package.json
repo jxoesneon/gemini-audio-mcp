@@ -1,0 +1,29 @@
+{
+  "name": "gemini-audio-mcp",
+  "version": "0.1.0",
+  "description": "High-performance Model Context Protocol (MCP) server for Gemini 2.0/3.0 audio and Lyria 3 music generation.",
+  "main": "index.js",
+  "bin": {
+    "gemini-audio-mcp": "index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "mcp",
+    "gemini",
+    "audio",
+    "music",
+    "soundscape",
+    "ai",
+    "rust"
+  ],
+  "author": "jxoesneon",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}

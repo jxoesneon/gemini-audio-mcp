@@ -54,6 +54,60 @@ use std::io::Write;
 
 // ... (keep ensure_ffmpeg, get_output_dir, play_audio_file, cleanup_assets, trim_audio, seamless_loop)
 
+/// Transcodes already-encoded audio bytes (e.g., MP3, WAV) to a target format.
+pub fn transcode_encoded(
+    encoded_bytes: &[u8],
+    target_format: &str,
+    options: Option<AudioOptions>,
+) -> anyhow::Result<String> {
+    ensure_ffmpeg()?;
+
+    let format_lower = target_format.to_lowercase();
+    let out_dir = get_output_dir()?;
+    let filename = format!("{}.{}", Uuid::new_v4(), format_lower);
+    let output_path = out_dir.join(filename);
+
+    let mut command = Command::new("ffmpeg");
+
+    // FFmpeg can auto-detect the input format from the pipe if we don't specify -f
+    command.arg("-i").arg("pipe:0");
+
+    if let Some(opts) = options {
+        if let Some(br) = opts.bitrate {
+            command.arg("-b:a").arg(br);
+        }
+        if let Some(sr) = opts.sample_rate {
+            command.arg("-ar").arg(sr.to_string());
+        }
+        if let Some(ch) = opts.channels {
+            command.arg("-ac").arg(ch.to_string());
+        }
+    }
+
+    let mut child = command
+        .arg("-y")
+        .arg(&output_path)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .context("Failed to spawn ffmpeg for transcoding")?;
+
+    {
+        let mut stdin = child.stdin.take().ok_or_else(|| anyhow!("Failed to open stdin"))?;
+        stdin.write_all(encoded_bytes).context("Failed to write to ffmpeg stdin")?;
+    }
+
+    let output = child.wait_with_output().context("Failed to wait for ffmpeg")?;
+
+    if !output.status.success() {
+        let err_msg = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("ffmpeg transcoding failed: {}", err_msg);
+    }
+
+    Ok(output_path.to_string_lossy().to_string())
+}
+
 /// Encodes raw PCM data directly to the target format using FFmpeg pipes.
 /// Returns the absolute path to the generated file.
 pub fn encode_pcm(
