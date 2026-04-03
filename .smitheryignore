@@ -1,6 +1,0 @@
-target/
-node_modules/
-audio_outputs/
-.git/
-*.png
-scripts/debug/
