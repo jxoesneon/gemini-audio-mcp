@@ -1,0 +1,30 @@
+# PR Labeler configuration
+# Categorize PRs based on files changed
+
+"lang:rust":
+  - src/**/*.rs
+  - Cargo.*
+
+"lang:javascript":
+  - index.js
+  - package*.json
+
+"area:ci":
+  - .github/workflows/**/*
+  - .github/dependabot.yml
+  - .github/labeler.yml
+
+"area:docs":
+  - README.md
+  - LICENSE
+  - docs/**/*
+  - CLAUDE.md
+
+"area:docker":
+  - Dockerfile
+  - .dockerignore
+
+"area:config":
+  - server.json
+  - glama.json
+  - smithery.yaml
