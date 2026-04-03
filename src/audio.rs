@@ -1,8 +1,7 @@
 use anyhow::{anyhow, Context};
-use hound::{SampleFormat, WavSpec, WavWriter};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::time::{Duration, SystemTime};
 use uuid::Uuid;
 
@@ -51,47 +50,14 @@ pub fn get_output_dir() -> anyhow::Result<PathBuf> {
     Ok(out_dir)
 }
 
-/// Saves 16-bit little-endian PCM data at 24kHz (Mono) to a WAV file.
-/// Returns the absolute path to the saved file.
-pub fn save_pcm_to_wav(pcm_data: &[u8]) -> anyhow::Result<String> {
-    let out_dir = get_output_dir()?;
+use std::io::Write;
 
-    // Generate a unique filename using UUID
-    let filename = format!("{}.wav", Uuid::new_v4());
-    let file_path = out_dir.join(filename);
+// ... (keep ensure_ffmpeg, get_output_dir, play_audio_file, cleanup_assets, trim_audio, seamless_loop)
 
-    // Set up WAV specification: 24kHz, 16-bit, Mono
-    let spec = WavSpec {
-        channels: 1,
-        sample_rate: 24000,
-        bits_per_sample: 16,
-        sample_format: SampleFormat::Int,
-    };
-
-    // Create the WAV writer
-    let mut writer = WavWriter::create(&file_path, spec).context("Failed to create WavWriter")?;
-
-    // Convert &[u8] to i16 samples (little-endian) and write them
-    for chunk in pcm_data.chunks_exact(2) {
-        let sample = i16::from_le_bytes([chunk[0], chunk[1]]);
-        writer
-            .write_sample(sample)
-            .context("Failed to write sample")?;
-    }
-
-    writer.finalize().context("Failed to finalize WAV file")?;
-
-    let abs_path = file_path
-        .to_str()
-        .context("Failed to convert path to string")?
-        .to_string();
-
-    Ok(abs_path)
-}
-
-/// Converts a WAV file to the specified format using ffmpeg.
-pub fn convert_to_format(
-    wav_path: &str,
+/// Encodes raw PCM data directly to the target format using FFmpeg pipes.
+/// Returns the absolute path to the generated file.
+pub fn encode_pcm(
+    pcm_data: &[u8],
     format: &str,
     options: Option<AudioOptions>,
 ) -> anyhow::Result<String> {
@@ -110,71 +76,60 @@ pub fn convert_to_format(
         );
     }
 
-    let input_path = PathBuf::from(wav_path);
-    if !input_path.exists() {
-        anyhow::bail!("Input WAV file does not exist: {}", wav_path);
+    let out_dir = get_output_dir()?;
+    let filename = format!("{}.{}", Uuid::new_v4(), format_lower);
+    let output_path = out_dir.join(filename);
+
+    let mut command = Command::new("ffmpeg");
+
+    // Input parameters: raw s16le PCM, 24kHz, Mono
+    command
+        .arg("-f")
+        .arg("s16le")
+        .arg("-ar")
+        .arg(SAMPLE_RATE.to_string())
+        .arg("-ac")
+        .arg("1")
+        .arg("-i")
+        .arg("pipe:0"); // Read from stdin
+
+    // Output parameters
+    if let Some(opts) = options {
+        if let Some(br) = opts.bitrate {
+            command.arg("-b:a").arg(br);
+        }
+        if let Some(sr) = opts.sample_rate {
+            command.arg("-ar").arg(sr.to_string());
+        }
+        if let Some(ch) = opts.channels {
+            command.arg("-ac").arg(ch.to_string());
+        }
     }
 
-    // If target is wav and no options, just return the input
-    if format_lower == "wav" && options.is_none() {
-        return Ok(wav_path.to_string());
+    let mut child = command
+        .arg("-y") // Overwrite if exists
+        .arg(&output_path)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .context("Failed to spawn ffmpeg")?;
+
+    // Write PCM data to ffmpeg's stdin
+    {
+        let mut stdin = child.stdin.take().ok_or_else(|| anyhow!("Failed to open stdin"))?;
+        stdin.write_all(pcm_data).context("Failed to write to ffmpeg stdin")?;
+        // Stdin is closed here, signaling EOF to ffmpeg
     }
-let mut output_path = input_path.clone();
-output_path.set_extension(&format_lower);
 
-// If target is same as source and no options, return input
-if output_path == input_path && options.is_none() {
-    return Ok(wav_path.to_string());
-}
+    let output = child.wait_with_output().context("Failed to wait for ffmpeg")?;
 
-// FFmpeg cannot read and write to the same file. 
-// If output_path == input_path, we must use a temporary file.
-let final_output_path = output_path.clone();
-let processing_output_path = if output_path == input_path {
-    let mut tmp = output_path.clone();
-    tmp.set_extension(format!("{}.tmp", format_lower));
-    tmp
-} else {
-    output_path
-};
-
-let mut command = Command::new("ffmpeg");
-command.arg("-i").arg(wav_path);
-
-// Explicitly specify output format if using a .tmp extension
-if processing_output_path != final_output_path {
-    command.arg("-f").arg(&format_lower);
-}
-// Apply options if provided
-if let Some(opts) = options {
-    if let Some(br) = opts.bitrate {
-        command.arg("-b:a").arg(br);
+    if !output.status.success() {
+        let err_msg = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("ffmpeg failed: {}", err_msg);
     }
-    if let Some(sr) = opts.sample_rate {
-        command.arg("-ar").arg(sr.to_string());
-    }
-    if let Some(ch) = opts.channels {
-        command.arg("-ac").arg(ch.to_string());
-    }
-}
 
-let status = command
-    .arg("-y") // Overwrite if exists
-    .arg(&processing_output_path)
-    .status()
-    .context("Failed to execute ffmpeg")?;
-
-if !status.success() {
-    anyhow::bail!("ffmpeg failed to convert {} to {}", wav_path, format_lower);
-}
-
-// If we used a temporary file, rename it to the final path
-if processing_output_path != final_output_path {
-    fs::rename(&processing_output_path, &final_output_path)
-        .context("Failed to rename temporary conversion file")?;
-}
-
-Ok(final_output_path.to_string_lossy().to_string())
+    Ok(output_path.to_string_lossy().to_string())
 }
 
 
@@ -359,5 +314,38 @@ mod tests {
         // Loop to 1 second
         let looped = seamless_loop(pcm_data, 1.0);
         assert_eq!(looped.len(), 48000);
+    }
+
+    #[test]
+    fn test_encode_pcm_basic() {
+        if ensure_ffmpeg().is_err() {
+            return;
+        }
+        // 1 second of silence
+        let pcm_data = vec![0u8; 48000];
+        let result = encode_pcm(&pcm_data, "mp3", None);
+        assert!(result.is_ok(), "Encoding failed: {:?}", result.err());
+        let path = result.unwrap();
+        assert!(Path::new(&path).exists());
+        assert!(path.ends_with(".mp3"));
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn test_encode_pcm_with_options() {
+        if ensure_ffmpeg().is_err() {
+            return;
+        }
+        let pcm_data = vec![0u8; 48000];
+        let options = AudioOptions {
+            bitrate: Some("128k".to_string()),
+            sample_rate: Some(44100),
+            channels: Some(2),
+        };
+        let result = encode_pcm(&pcm_data, "wav", Some(options));
+        assert!(result.is_ok(), "Encoding failed: {:?}", result.err());
+        let path = result.unwrap();
+        assert!(Path::new(&path).exists());
+        let _ = fs::remove_file(path);
     }
 }

@@ -266,36 +266,22 @@ async fn main() -> anyhow::Result<()> {
                                     let actual_duration = (pcm_data.len() as f64)
                                         / (audio::SAMPLE_RATE as f64
                                             * audio::BYTES_PER_SAMPLE as f64);
-                                    match audio::save_pcm_to_wav(&pcm_data) {
-                                        Ok(wav_path) => {
-                                            match audio::convert_to_format(
-                                                &wav_path,
-                                                format,
-                                                Some(audio_options),
-                                            ) {
-                                                Ok(p) => {
-                                                    if p != wav_path {
-                                                        let _ = std::fs::remove_file(&wav_path);
-                                                    }
-                                                    if auto_play {
-                                                        let _ = audio::play_audio_file(&p);
-                                                    }
-                                                    let result = json!({
-                                                        "path": p,
-                                                        "format": format,
-                                                        "duration_seconds": actual_duration,
-                                                        "sample_rate": audio::SAMPLE_RATE,
-                                                        "description": description
-                                                    });
-                                                    json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&result).unwrap()}]})
-                                                }
-                                                Err(e) => {
-                                                    json!({"isError": true, "content": [{"type": "text", "text": format!("Conversion error: {}", e)}]})
-                                                }
+                                    match audio::encode_pcm(&pcm_data, format, Some(audio_options)) {
+                                        Ok(p) => {
+                                            if auto_play {
+                                                let _ = audio::play_audio_file(&p);
                                             }
+                                            let result = json!({
+                                                "path": p,
+                                                "format": format,
+                                                "duration_seconds": actual_duration,
+                                                "sample_rate": audio::SAMPLE_RATE,
+                                                "description": description
+                                            });
+                                            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&result).unwrap()}]})
                                         }
                                         Err(e) => {
-                                            json!({"isError": true, "content": [{"type": "text", "text": format!("Save error: {}", e)}]})
+                                            json!({"isError": true, "content": [{"type": "text", "text": format!("Encoding error: {}", e)}]})
                                         }
                                     }
                                 }
@@ -350,40 +336,26 @@ async fn main() -> anyhow::Result<()> {
                                     let actual_duration = (mixed_pcm.len() as f64)
                                         / (audio::SAMPLE_RATE as f64
                                             * audio::BYTES_PER_SAMPLE as f64);
-                                    match audio::save_pcm_to_wav(&mixed_pcm) {
-                                        Ok(wav_path) => {
-                                            match audio::convert_to_format(
-                                                &wav_path,
-                                                format,
-                                                Some(audio_options),
-                                            ) {
-                                                Ok(p) => {
-                                                    if p != wav_path {
-                                                        let _ = std::fs::remove_file(&wav_path);
-                                                    }
-                                                    if auto_play {
-                                                        let _ = audio::play_audio_file(&p);
-                                                    }
-                                                    let description = format!(
-                                                        "Transition from: {}\nTo: {}",
-                                                        desc1, desc2
-                                                    );
-                                                    let result = json!({
-                                                        "path": p,
-                                                        "format": format,
-                                                        "duration_seconds": actual_duration,
-                                                        "sample_rate": audio::SAMPLE_RATE,
-                                                        "description": description
-                                                    });
-                                                    json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&result).unwrap()}]})
-                                                }
-                                                Err(e) => {
-                                                    json!({"isError": true, "content": [{"type": "text", "text": format!("Conversion error: {}", e)}]})
-                                                }
+                                    match audio::encode_pcm(&mixed_pcm, format, Some(audio_options)) {
+                                        Ok(p) => {
+                                            if auto_play {
+                                                let _ = audio::play_audio_file(&p);
                                             }
+                                            let description = format!(
+                                                "Transition from: {}\nTo: {}",
+                                                desc1, desc2
+                                            );
+                                            let result = json!({
+                                                "path": p,
+                                                "format": format,
+                                                "duration_seconds": actual_duration,
+                                                "sample_rate": audio::SAMPLE_RATE,
+                                                "description": description
+                                            });
+                                            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&result).unwrap()}]})
                                         }
                                         Err(e) => {
-                                            json!({"isError": true, "content": [{"type": "text", "text": format!("Save error: {}", e)}]})
+                                            json!({"isError": true, "content": [{"type": "text", "text": format!("Encoding error: {}", e)}]})
                                         }
                                     }
                                 }
