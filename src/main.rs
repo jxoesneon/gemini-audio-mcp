@@ -12,7 +12,9 @@ use tokio::sync::Semaphore;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt()
+        .with_writer(std::io::stderr)
+        .init();
 
     // Load persistent configuration
     let mut config = Config::load();
