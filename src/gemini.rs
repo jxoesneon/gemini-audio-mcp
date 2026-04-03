@@ -72,7 +72,9 @@ pub async fn generate_audio(
             "turnComplete": true
         }
     });
-    write.send(Message::Text(content.to_string().into())).await?;
+    write
+        .send(Message::Text(content.to_string().into()))
+        .await?;
     let mut audio_bytes = Vec::new();
     let mut description = String::new();
 
@@ -96,7 +98,6 @@ pub async fn generate_audio(
             }
             _ => continue,
         };
-
 
         if let Some(server_content) = resp.get("serverContent") {
             if let Some(model_turn) = server_content.get("modelTurn") {
