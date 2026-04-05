@@ -21,6 +21,7 @@
 - **Build**: `cargo build --release`
 - **Run (binary)**: `./target/release/gemini-audio-mcp`
 - **Run (Node.js wrapper)**: `node index.js`
+- **Environment**: Set `GEMINI_API_KEY` for API access.
 - **Lint**: `cargo clippy`
 - **Format**: `cargo fmt`
 

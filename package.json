@@ -20,6 +20,14 @@
   ],
   "author": "jxoesneon",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jxoesneon/gemini-audio-mcp.git"
+  },
+  "homepage": "https://github.com/jxoesneon/gemini-audio-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/jxoesneon/gemini-audio-mcp/issues"
+  },
   "engines": {
     "node": ">=18.0.0"
   },

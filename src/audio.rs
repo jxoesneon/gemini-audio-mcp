@@ -52,9 +52,9 @@ pub fn get_output_dir() -> anyhow::Result<PathBuf> {
 
 use std::io::Write;
 
-// ... (keep ensure_ffmpeg, get_output_dir, play_audio_file, cleanup_assets, trim_audio, seamless_loop)
-
 /// Transcodes already-encoded audio bytes (e.g., MP3, WAV) to a target format.
+/// 
+/// Returns the absolute path to the generated file.
 pub fn transcode_encoded(
     encoded_bytes: &[u8],
     target_format: &str,
@@ -112,6 +112,16 @@ pub fn transcode_encoded(
         anyhow::bail!("ffmpeg transcoding failed: {}", err_msg);
     }
 
+    Ok(output_path.to_string_lossy().to_string())
+}
+
+/// Saves raw audio bytes to the output directory with a unique filename.
+/// Returns the absolute path to the saved file.
+pub fn save_audio(bytes: &[u8], extension: &str) -> anyhow::Result<String> {
+    let out_dir = get_output_dir()?;
+    let filename = format!("{}.{}", Uuid::new_v4(), extension);
+    let output_path = out_dir.join(filename);
+    fs::write(&output_path, bytes).context("Failed to write audio file")?;
     Ok(output_path.to_string_lossy().to_string())
 }
 
@@ -252,6 +262,51 @@ pub fn cleanup_assets(max_age: Duration) -> anyhow::Result<usize> {
     }
 
     Ok(count)
+}
+
+/// Decodes already-encoded audio bytes (e.g., MP3, WAV) back to raw PCM (24kHz 16-bit mono).
+pub fn decode_to_pcm(encoded_bytes: &[u8]) -> anyhow::Result<Vec<u8>> {
+    ensure_ffmpeg()?;
+
+    let mut command = Command::new("ffmpeg");
+    command
+        .arg("-i")
+        .arg("pipe:0")
+        .arg("-f")
+        .arg("s16le")
+        .arg("-ar")
+        .arg(SAMPLE_RATE.to_string())
+        .arg("-ac")
+        .arg("1")
+        .arg("pipe:1");
+
+    let mut child = command
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .context("Failed to spawn ffmpeg for decoding")?;
+
+    {
+        let mut stdin = child
+            .stdin
+            .take()
+            .ok_or_else(|| anyhow!("Failed to open stdin"))?;
+        stdin
+            .write_all(encoded_bytes)
+            .context("Failed to write to ffmpeg stdin")?;
+    }
+
+    let output = child
+        .wait_with_output()
+        .context("Failed to wait for ffmpeg")?;
+
+    if !output.status.success() {
+        let err_msg = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("ffmpeg decoding failed: {}", err_msg);
+    }
+
+    Ok(output.stdout)
 }
 
 /// PCM constants for 24kHz 16-bit mono audio.
@@ -414,5 +469,58 @@ mod tests {
         let path = result.unwrap();
         assert!(Path::new(&path).exists());
         let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn test_decode_to_pcm() {
+        if ensure_ffmpeg().is_err() {
+            return;
+        }
+        // Create a 100ms 440Hz sine wave WAV file in memory
+        let mut pcm_data = Vec::with_capacity(4800);
+        for i in 0..2400 {
+            let val = (i as f32 * 440.0 * 2.0 * std::f32::consts::PI / 24000.0).sin();
+            let sample = (val * i16::MAX as f32) as i16;
+            pcm_data.extend_from_slice(&sample.to_le_bytes());
+        }
+
+        let encoded_wav_path = encode_pcm(&pcm_data, "wav", None).unwrap();
+        let encoded_bytes = fs::read(&encoded_wav_path).unwrap();
+        let _ = fs::remove_file(encoded_wav_path);
+
+        let decoded_pcm = decode_to_pcm(&encoded_bytes).unwrap();
+        // Should be roughly the same size (FFmpeg might add some padding/metadata header stuff but the raw PCM should be back)
+        assert!(decoded_pcm.len() >= 4800);
+        
+        // Check first few samples
+        let s1 = i16::from_le_bytes([pcm_data[0], pcm_data[1]]);
+        let d1 = i16::from_le_bytes([decoded_pcm[0], decoded_pcm[1]]);
+        // Allow some small difference due to lossy-ish conversion or dithering (though WAV should be exact)
+        assert!((s1 - d1).abs() < 100);
+    }
+
+    #[test]
+    fn test_seamless_loop_crossfade_logic() {
+        // Create 1 second of a constant tone
+        let mut pcm_data = Vec::with_capacity(48000);
+        for i in 0..24000 {
+            pcm_data.extend_from_slice(&(1000i16).to_le_bytes());
+        }
+
+        // Loop to 2 seconds
+        let looped = seamless_loop(pcm_data, 2.0);
+        assert_eq!(looped.len(), 96000);
+
+        // Check if the middle (where transition happened) is still roughly 1000
+        // Transition is 100ms (2400 samples = 4800 bytes)
+        // Original was 48000 bytes.
+        // Loop point should be around 48000 - 4800 = 43200 bytes offset?
+        // Wait, the logic is: next_iteration.extend_from_slice(&result_samples[..pcm1_len - actual_transition]);
+        // then crossfade.
+        
+        let mid_sample_idx = 24000 - 1200; // Middle of transition
+        let offset = mid_sample_idx * 2;
+        let sample = i16::from_le_bytes([looped[offset], looped[offset + 1]]);
+        assert_eq!(sample, 1000);
     }
 }

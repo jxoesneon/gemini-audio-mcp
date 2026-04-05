@@ -1,35 +1,63 @@
-# 🎙️ Prompt Engineering for Audio
+# 🎙️ Master Class: Prompt Engineering for Audio
 
-Getting high-quality results from Gemini and Lyria requires a slightly different approach than text generation. Audio models "listen" for descriptive cues about texture, space, and emotion.
-
-## 🎲 Soundscape Generation (`generate_soundscape`)
-*Best for: Environmental ambience, background textures.*
-
-The Gemini 2.0 Live API excels at complex, layered sounds. Use "sensory" adjectives.
-
-*   **❌ Bad**: "rain in a city"
-*   **✅ Good**: "Heavy rhythmic rain hitting a glass window in a futuristic cyberpunk city, distant low-frequency hovercar hums, neon signs buzzing faintly, binaural spatial audio."
-
-**Tip: The "Seamless Loop" trick**
-When generating loops, explicitly tell the model: *"Constant background texture with no sudden peaks, suitable for a seamless loop."*
+Generative audio requires a shift in mindset from text models. Instead of describing *what happens*, you must describe the **sonic texture, spatial environment, and emotional resonance** of the target sound.
 
 ---
 
-## 🗣️ Voice Generation (`generate_voice`)
-*Best for: Narration, character dialogue, expressive reading.*
+## 🎲 Advanced Soundscapes (`generate_soundscape`)
 
-The Native Audio model can follow "voice direction" within the prompt.
+### Ensuring Vocal-Free Environments
+By default, the server appends aggressive negative prompts to ensure instrumental-only output. However, your prompt should reinforce this to avoid unwanted vocal "artifacts" or humming.
 
-*   **Direction**: "Read the following in a raspy, old wizard's voice, pausing for dramatic effect after every sentence."
-*   **Emotion**: "A nervous, high-pitched voice that cracks slightly when speaking about the monster."
+- **❌ Ambiguous**: "A rainy street in Japan."
+- **✅ Sonic Precision**: "Heavy rhythmic rain hitting a glass window in a futuristic cyberpunk city. Drip-drip textures, muffled asphalt puddles. **Pure instrumental foley, no voices, no music.** Deep low-frequency hover-car hums, binaural spatial audio."
 
 ---
 
-## 🎵 Music & SFX (`generate_music` / `generate_sfx`)
-*Powered by Lyria 3 (Pro/Clip).*
+## 🎵 Professional Music Production (`generate_music`)
 
-Lyria responds well to genre, instrumentation, and BPM.
+### Structural Composition with Timestamps
+The Lyria 3 model understands temporal cues. Use `[mm:ss - mm:ss]` syntax within your prompt to dictate section changes, instrumentation shifts, and dynamic evolution.
 
-*   **Genre-based**: "Lo-fi hip hop with a dusty vinyl crackle, mellow electric piano, 85 BPM, relaxing study vibes."
-*   **Instrumentation**: "Solo cello playing a melancholic minor-key melody in a large cathedral with long reverb."
-*   **SFX**: "A crisp, metallic 'ching' sound effect for a level-up notification, high-pitched and rewarding."
+> **Example**: "Lo-fi jazz hip hop, 85 BPM. **[00:00 - 00:30]** Sparse mellow Rhodes piano chords. **[00:30 - 01:00]** Dusty vinyl crackle and a boom-bap drum loop enter. **[01:00 - 02:00]** A melancholic muted trumpet melody leads."
+
+### Metadata Keywords
+The server "bakes" these keywords into the final prompt. Use them to maintain technical consistency across multiple generations:
+- **BPM**: Target tempo (e.g., `BPM: 120`).
+- **Key**: Harmonic center (e.g., `Key: A-flat major`).
+- **Intensity**: Dynamic energy level (e.g., `Intensity: 8/10`).
+
+---
+
+## 🗣️ Expressive Voice & Narration (`generate_voice`)
+
+The Gemini 2.5 Native Audio model is highly sensitive to **Voice Direction**. Instead of just providing text, describe the *character's state* and *vocal technique*.
+
+- **Character Profile**: "A raspy, ancient wizard with a dry cough. Read slowly with long pauses."
+- **Emotional Arc**: "Start whispering in a terrified voice, then suddenly shout with a high-pitched frantic tone."
+- **Acoustic Environment**: "Read the text as if the speaker is inside a large, empty metal tank with a 4-second echoing reverb."
+
+---
+
+## 🔊 Sound Effects & Foley (`generate_sfx`)
+
+For one-shot SFX, brevity and "isolation" are key. Use punchy, descriptive adjectives.
+
+- **Bad**: "A laser beam shooting."
+- **Good**: "A high-pitched metallic 'PEW' laser blast. Synthesized pulse wave, crisp transients, isolated sound effect, zero background music."
+
+---
+
+## 🖼 Multimodal Guidance (The `image_path` Parameter)
+
+One of the most powerful features of the Gemini Audio MCP is the ability to guide audio with visual input.
+1. **Texture Mapping**: An image of a rough stone wall will influence the model to generate audio with "gritty" and "damped" acoustic properties.
+2. **Atmosphere Synchronization**: Provide a screenshot of your game level (e.g., a neon cyberpunk alley) to synchronize the generation's "mood" with the visual aesthetic.
+
+---
+
+## 🛠 Pro-Tips for Prompt Design
+
+1. **The "Layering" Method**: Describe sounds from the background to the foreground. (e.g., "Distant city hum [background] -> Muffled chatter [midground] -> Sharp glass breaking [foreground]").
+2. **Suppression Phrases**: Use "pure", "isolated", "dry", and "no-reverb" to get clean, manipulatable assets.
+3. **Intensity Tuning**: For music, if the model is too chaotic, lower the `intensity` parameter to `2/10` to get a sparse, minimal arrangement.

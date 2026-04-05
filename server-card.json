@@ -17,42 +17,53 @@
   "tools": [
     {
       "name": "generate_soundscape",
-      "description": "Create immersive, high-quality environmental ambience with seamless looping.",
+      "description": "Generates immersive, high-quality environmental soundscapes. (PAID MODELS).",
       "inputSchema": {
         "type": "object",
         "properties": {
           "prompt": { "type": "string", "description": "Description of the soundscape" },
-          "duration": { "type": "integer", "description": "Duration in seconds" },
-          "format": { "type": "string", "description": "Audio format (mp3, ogg, etc.)" }
+          "duration": { "type": "integer", "description": "Target duration in seconds" },
+          "quality": { "type": "string", "enum": ["mid", "high"] },
+          "bpm": { "type": "number" },
+          "song_key": { "type": "string" },
+          "intensity": { "type": "number" },
+          "seed": { "type": "integer" }
         },
         "required": ["prompt"]
       }
     },
     {
       "name": "generate_voice",
-      "description": "Convert text to expressive speech with natural voice direction.",
+      "description": "Convert text to expressive speech with natural voice direction using Gemini 2.5 Native Audio.",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "prompt": { "type": "string", "description": "Text to speak and voice direction" }
+          "text": { "type": "string", "description": "Text to speak" },
+          "voice_direction": { "type": "string", "description": "Style/tone instructions" }
         },
-        "required": ["prompt"]
+        "required": ["text"]
       }
     },
     {
       "name": "generate_music",
-      "description": "Generate full songs or rhythmic loops via Lyria 3 Pro/Clip.",
+      "description": "Generate high-fidelity musical compositions via Lyria 3 Pro/Clip.",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "prompt": { "type": "string", "description": "Musical style and description" }
+          "prompt": { "type": "string", "description": "Musical style and description" },
+          "lyrics": { "type": "string" },
+          "quality": { "type": "string", "enum": ["mid", "high"] },
+          "bpm": { "type": "number" },
+          "song_key": { "type": "string" },
+          "intensity": { "type": "number" },
+          "candidate_count": { "type": "integer" }
         },
         "required": ["prompt"]
       }
     },
     {
       "name": "generate_sfx",
-      "description": "Create isolated sound effects and foley cues.",
+      "description": "Create isolated sound effects and foley cues using Lyria Clip.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -67,11 +78,36 @@
       "inputSchema": {
         "type": "object",
         "properties": {
-          "from_prompt": { "type": "string", "description": "Initial environment prompt" },
-          "to_prompt": { "type": "string", "description": "Target environment prompt" },
-          "transition_duration": { "type": "integer", "description": "Crossfade duration in seconds" }
+          "from_prompt": { "type": "string" },
+          "to_prompt": { "type": "string" },
+          "transition_duration": { "type": "integer" }
         },
         "required": ["from_prompt", "to_prompt"]
+      }
+    },
+    {
+      "name": "list_models",
+      "description": "List available audio generation models and engines.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "generate_custom",
+      "description": "Advanced tool for full control over audio generation parameters.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prompt": { "type": "string" },
+          "engine": { "type": "string", "enum": ["lyria", "gemini-live"] },
+          "model": { "type": "string" },
+          "seed": { "type": "integer" },
+          "negative_prompt": { "type": "string" },
+          "bpm": { "type": "number" },
+          "intensity": { "type": "number" }
+        },
+        "required": ["prompt", "engine"]
       }
     }
   ],

@@ -1,3 +1,5 @@
+//! Audio mixing and crossfading utilities.
+
 /// Performs a linear crossfade between two PCM audio buffers.
 /// Assuming 24kHz 16-bit mono PCM.
 /// The transition occurs over `transition_samples` at the end of `pcm1` and the start of `pcm2`.

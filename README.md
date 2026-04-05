@@ -1,43 +1,37 @@
 # 🎵 Gemini Audio MCP
 
-[![gemini-audio-mcp MCP server](https://glama.ai/mcp/servers/jxoesneon/gemini-audio-mcp/badges/card.svg)](https://glama.ai/mcp/servers/jxoesneon/gemini-audio-mcp)
-[![gemini-audio-mcp MCP server](https://glama.ai/mcp/servers/jxoesneon/gemini-audio-mcp/badges/score.svg)](https://glama.ai/mcp/servers/jxoesneon/gemini-audio-mcp)
+[![Institutional Grade](https://img.shields.io/badge/Quality-Institutional--Grade-blue.svg)](https://github.com/mcp-servers/gemini-audio-mcp)
+[![Gemini 2.5](https://img.shields.io/badge/Model-Gemini%202.5%20Live-orange.svg)](https://ai.google.dev/)
+[![Lyria 3](https://img.shields.io/badge/Engine-Lyria%203%20Pro-purple.svg)](https://deepmind.google/technologies/lyria/)
 
-**Gemini Audio MCP** is a high-performance Model Context Protocol (MCP) server that leverages the power of the **Gemini 2.0 Multimodal Live API** to generate high-fidelity, environmental soundscapes on-demand.
-
----
-
-## 🚀 Mission Statement
-Our mission is to provide an immersive, AI-powered audio generation layer for any MCP-compatible environment, enabling the creation of dynamic, seamless, and high-quality environmental audio through simple text prompts.
+**Gemini Audio MCP** is a high-performance Model Context Protocol (MCP) server engineered for professional-grade audio synthesis. It leverages the **Gemini 2.5 Multimodal Live API** and Google DeepMind's **Lyria 3** models to deliver high-fidelity environmental soundscapes, musical compositions, and expressive narration on-demand.
 
 ---
 
-## ✨ Key Features
+## 🛠 Prerequisites
 
--   **🌊 Dynamic Soundscapes**: Generate complex environmental audio using the latest Gemini 2.5 Native Audio models.
--   **🎵 Professional Music**: High-fidelity music production via Google's **Lyria 3** models:
-    -   **Lyria 3 Pro**: Full song generation with structural coherence ($0.08/req).
-    -   **Lyria 3 Clip**: Low-latency clips and rhythmic loops ($0.04/req).
--   **🔁 Infinite Looping**: Seamless, click-free looping with 100ms micro-crossfades.
--   **🔀 Smooth Crossfades**: Transition between two different soundscapes with customizable crossfade durations.
--   **📂 Universal Formats**: Export audio to a variety of formats (WAV, MP3, OGG, FLAC) powered by FFmpeg.
--   **▶️ Auto-play Integration**: Instantly play generated audio through your system's default player upon completion.
--   **⚙️ Persistent Configuration**: Fine-tune default bitrates, sample rates, and durations once and reuse them across sessions.
+Before deploying the server, ensure your environment meets the following technical requirements:
+
+### 1. FFmpeg (Core Processing Engine)
+Required for high-performance audio encoding, decoding, and transcoding.
+- **macOS**: `brew install ffmpeg`
+- **Windows**: `winget install ffmpeg` or download from [ffmpeg.org](https://ffmpeg.org/).
+- **Linux (Ubuntu/Debian)**: `sudo apt update && sudo apt install ffmpeg`
+
+### 2. Rust Toolchain (Compilation)
+Required to build the server from source.
+- Install via [rustup.rs](https://rustup.rs/): `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+
+### 3. Node.js & NPM (Runtime)
+Required if using the pre-compiled NPM package.
+- Version: `node >= 18.0.0`
 
 ---
 
-## 🛠 Installation Guide
+## 🚀 Installation & Deployment
 
-### Prerequisites
-1.  **FFmpeg**: Required for audio conversion and processing.
-    -   **macOS**: `brew install ffmpeg`
-    -   **Ubuntu/Debian**: `sudo apt install ffmpeg`
-    -   **Windows**: Download from [ffmpeg.org](https://ffmpeg.org/download.html).
-2.  **Rust Toolchain**: Required for building the project (`cargo`).
-3.  **Gemini API Key**: Obtain your key from the [Google AI Studio](https://aistudio.google.com/).
-
-### 1. NPM / NPX (Recommended for non-Rust users)
-Add the server directly to your MCP client configuration using `npx`:
+### Global Installation (via NPX)
+The fastest way to integrate the server into your MCP client (e.g., Claude Desktop).
 ```json
 {
   "mcpServers": {
@@ -45,119 +39,124 @@ Add the server directly to your MCP client configuration using `npx`:
       "command": "npx",
       "args": ["-y", "gemini-audio-mcp"],
       "env": {
-        "GEMINI_API_KEY": "YOUR_API_KEY"
+        "GEMINI_API_KEY": "YOUR_SECURE_API_KEY"
       }
     }
   }
 }
 ```
 
-### 2. Manual Installation (Rust)
-1.  Clone the repository:
+### Manual Build (Optimized)
+For maximum performance, build the Rust binary locally:
+1.  **Clone & Build**:
     ```bash
     git clone https://github.com/mcp-servers/gemini-audio-mcp.git
     cd gemini-audio-mcp
-    ```
-2.  Build the project:
-    ```bash
     cargo build --release
     ```
-3.  Configure your environment:
-    Set the `GEMINI_API_KEY` environment variable in your MCP client or system.
-
-### 3. Docker (Cloud / Self-hosted)
-The server is available as a Docker image for easy deployment:
-```bash
-docker run -it \
-  -e GEMINI_API_KEY="YOUR_API_KEY" \
-  -v gemini-audio-data:/root/.local/share/gemini-audio-mcp \
-  ghcr.io/jxoesneon/gemini-audio-mcp:latest
-```
-
-To use it in your MCP client configuration:
-```json
-{
-  "mcpServers": {
-    "gemini-audio-docker": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "-e", "GEMINI_API_KEY=YOUR_API_KEY",
-        "ghcr.io/jxoesneon/gemini-audio-mcp:latest"
-      ]
-    }
-  }
-}
-```
+2.  **Locate Binary**: The optimized binary will be in `./target/release/gemini-audio-mcp`.
 
 ---
 
-## 🎮 Use Cases for Game Developers & Creators
+## 🔑 API Key Management
 
-Gemini Audio MCP is designed to integrate seamlessly into modern creative workflows, particularly for those using **Unreal Engine 5**, **Godot**, or **Blender**:
-
--   **🎲 Procedural Soundscapes**: Generate unique, non-repeating environmental audio for open-world games or dynamic levels.
--   **🗣️ Dynamic Character Dialogue**: Use `generate_voice` with expressive direction to prototype character lines or create infinite NPC dialogue for RPGs.
--   **🎥 Automated Sound Design**: Perfect for Blender artists looking to generate high-quality foley and background textures for animations directly through an AI-assisted pipeline.
--   **⚡ Rapid Prototyping**: Instantly generate rhythmic loops and musical stings for game jams or early-stage development.
+The server requires a valid Google AI Studio API key.
+1.  Obtain your key from [Google AI Studio](https://aistudio.google.com/).
+2.  **Security Best Practice**: Never hardcode keys. Inject the key via the `GEMINI_API_KEY` environment variable.
+3.  **Tier Note**: Access to Lyria 3 (Pro/Clip) models typically requires a **Paid Tier** or specific preview access in Google AI Studio.
 
 ---
 
-## 🔧 Tool Usage Examples
+## 🎮 Tool Usage Guide
 
-### Generate a Soundscape
-Create an immersive 30-second loop of a cyberpunk rainy city.
+### 1. Environmental Generation (`generate_soundscape`)
+Synthesizes immersive, vocal-free ambient textures.
 ```json
 {
   "name": "generate_soundscape",
   "arguments": {
-    "prompt": "Heavy rain on neon-lit cyberpunk city streets, distant hover-car hums, muffled holographic advertisements.",
-    "duration": 30,
-    "format": "mp3",
+    "prompt": "Deep underwater abyss, low-frequency whale songs, rhythmic air bubbles rising, muffled aquatic pressure.",
+    "duration": 60,
+    "quality": "high",
     "auto_play": true
   }
 }
 ```
 
-### Transition Between Environments
-Seamlessly shift from a peaceful forest to a roaring thunderstorm.
+### 2. Professional Music (`generate_music`)
+Generates structural compositions with optional vocal control.
+```json
+{
+  "name": "generate_music",
+  "arguments": {
+    "prompt": "Melancholic solo cello in a vast cathedral with 5-second decay reverb.",
+    "bpm": 72,
+    "song_key": "D minor",
+    "intensity": 4
+  }
+}
+```
+
+### 3. Expressive Voice (`generate_voice`)
+Narration and character dialogue using Gemini 2.5 Native Audio.
+```json
+{
+  "name": "generate_voice",
+  "arguments": {
+    "text": "The artifacts are stable, but the rift remains open.",
+    "voice_direction": "Gravelly, urgent, whispered"
+  }
+}
+```
+
+### 4. Dynamic Evolution (`transition_soundscape`)
+Crossfades two distinct environments for seamless scene transitions.
 ```json
 {
   "name": "transition_soundscape",
   "arguments": {
-    "from_prompt": "Quiet morning forest with chirping birds and rustling leaves.",
-    "to_prompt": "Intense tropical thunderstorm with loud thunder claps and heavy downpour.",
-    "transition_duration": 10,
-    "auto_play": true
-  }
-}
-```
-
-### Update Server Defaults
-Set the default output format to FLAC for higher quality.
-```json
-{
-  "name": "configure",
-  "arguments": {
-    "default_format": "flac",
-    "default_sample_rate": 48000
+    "from_prompt": "Quiet library silence.",
+    "to_prompt": "Sudden heavy rain on a tin roof.",
+    "transition_duration": 8
   }
 }
 ```
 
 ---
 
-## 🏛 Architecture Overview
+## ⚙️ Advanced Parameters
 
-The server is built with a modular Rust architecture designed for efficiency and reliability:
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `seed` | `Integer` | Ensures deterministic, reproducible audio outputs. |
+| `image_path` | `String` | **Multimodal**: Uses a local image to guide the acoustic mood (e.g., resonance). |
+| `bpm` | `Number` | Explicitly sets the rhythmic tempo (essential for music). |
+| `intensity` | `Number` | 1-10 scale controlling dynamic range and complexity. |
+| `guidance` | `Number` | 0.0-6.0 scale for prompt adherence (Lyria models). |
+| `duration` | `Number` | Target length in seconds. Triggers the **Seamless Looping Engine**. |
 
--   **`main.rs`**: The core MCP protocol engine handling tool registration and request dispatching.
--   **`gemini.rs`**: Manages low-level WebSocket communication with the Gemini 2.0 Multimodal Live API.
--   **`audio.rs`**: Handles PCM data manipulation, including seamless looping algorithms and FFmpeg integration for format transcoding.
--   **`mixer.rs`**: Implements audio processing logic for crossfading and blending multiple audio streams.
--   **`config.rs`**: Provides a persistent JSON-based configuration layer for user preferences.
+---
+
+## 🔬 Architecture Overview
+
+Gemini Audio MCP employs a unique **Hybrid Engine Strategy**:
+- **WebSocket Loop**: Connects to Gemini 2.5 Live for low-latency, interactive voice and foley tasks.
+- **REST Pipeline**: Interfaces with Lyria 3 Pro for high-fidelity musical synthesis.
+- **PCM Processing**: An internal Rust-based loop (`decode -> crossfade -> loop -> encode`) ensures that short clips are transformed into seamless, infinite soundscapes without audible clicks.
+
+---
+
+## 🧪 Troubleshooting
+
+### FFmpeg Errors
+- **"FFmpeg not found"**: Ensure `ffmpeg` is in your system PATH. Run `ffmpeg -version` in your terminal to verify.
+- **Transcoding Failures**: Check if you have the necessary codecs (e.g., `libmp3lame` for MP3). Most standard FFmpeg installations include these.
+
+### API Issues
+- **429 Rate Limit**: The server implements a semaphore to limit concurrency, but ensure your API tier supports the requested model.
+- **Empty Audio Output**: Verify your `GEMINI_API_KEY` is correct and that your account has access to the requested model (especially `lyria-3-pro-preview`).
 
 ---
 
 ## 📄 License
-Distributed under the **MIT License**. See `LICENSE` for more information.
+Licensed under the **MIT License**. Engineered with precision by the MCP community.

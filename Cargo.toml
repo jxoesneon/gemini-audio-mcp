@@ -2,6 +2,14 @@
 name = "gemini-audio-mcp"
 version = "0.1.0"
 edition = "2021"
+authors = ["jxoesneon"]
+description = "High-performance Model Context Protocol (MCP) server for Gemini 2.5 and Lyria 3 audio synthesis."
+license = "MIT"
+repository = "https://github.com/jxoesneon/gemini-audio-mcp"
+homepage = "https://github.com/jxoesneon/gemini-audio-mcp"
+keywords = ["mcp", "gemini", "audio", "music", "lyria"]
+categories = ["multimedia::audio", "ai"]
+readme = "README.md"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
