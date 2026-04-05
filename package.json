@@ -1,6 +1,6 @@
 {
   "name": "gemini-audio-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "High-performance Model Context Protocol (MCP) server for Gemini 2.0/3.0 audio and Lyria 3 music generation.",
   "main": "index.js",
   "bin": {

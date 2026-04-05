@@ -1,6 +1,6 @@
 [package]
 name = "gemini-audio-mcp"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["jxoesneon"]
 description = "High-performance Model Context Protocol (MCP) server for Gemini 2.5 and Lyria 3 audio synthesis."
