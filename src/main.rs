@@ -497,7 +497,8 @@ async fn main() -> anyhow::Result<()> {
                                             Ok(p) => p,
                                             Err(e) => {
                                                 tracing::error!("Transcoding failed, falling back to original: {}", e);
-                                                audio::save_audio(&audio_bytes, ext).unwrap_or_default()
+                                                audio::save_audio(&audio_bytes, ext)
+                                                    .unwrap_or_default()
                                             }
                                         }
                                     } else {
@@ -581,7 +582,8 @@ async fn main() -> anyhow::Result<()> {
                                             Ok(p) => p,
                                             Err(e) => {
                                                 tracing::error!("Transcoding failed, falling back to original: {}", e);
-                                                audio::save_audio(&audio_bytes, ext).unwrap_or_default()
+                                                audio::save_audio(&audio_bytes, ext)
+                                                    .unwrap_or_default()
                                             }
                                         }
                                     } else {

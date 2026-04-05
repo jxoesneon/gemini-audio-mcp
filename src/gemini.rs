@@ -21,7 +21,7 @@ pub struct LyriaOptions {
 }
 
 /// Connects to the Gemini Live API via WebSockets to generate audio from a prompt.
-/// 
+///
 /// Returns a tuple containing the raw PCM data and a text description of the audio.
 pub async fn generate_audio(
     prompt: &str,

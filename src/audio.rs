@@ -53,7 +53,7 @@ pub fn get_output_dir() -> anyhow::Result<PathBuf> {
 use std::io::Write;
 
 /// Transcodes already-encoded audio bytes (e.g., MP3, WAV) to a target format.
-/// 
+///
 /// Returns the absolute path to the generated file.
 pub fn transcode_encoded(
     encoded_bytes: &[u8],
@@ -491,7 +491,7 @@ mod tests {
         let decoded_pcm = decode_to_pcm(&encoded_bytes).unwrap();
         // Should be roughly the same size (FFmpeg might add some padding/metadata header stuff but the raw PCM should be back)
         assert!(decoded_pcm.len() >= 4800);
-        
+
         // Check first few samples
         let s1 = i16::from_le_bytes([pcm_data[0], pcm_data[1]]);
         let d1 = i16::from_le_bytes([decoded_pcm[0], decoded_pcm[1]]);
@@ -517,7 +517,7 @@ mod tests {
         // Loop point should be around 48000 - 4800 = 43200 bytes offset?
         // Wait, the logic is: next_iteration.extend_from_slice(&result_samples[..pcm1_len - actual_transition]);
         // then crossfade.
-        
+
         let mid_sample_idx = 24000 - 1200; // Middle of transition
         let offset = mid_sample_idx * 2;
         let sample = i16::from_le_bytes([looped[offset], looped[offset + 1]]);
