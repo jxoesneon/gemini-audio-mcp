@@ -6,12 +6,16 @@
 pub fn crossfade(pcm1: &[u8], pcm2: &[u8], transition_samples: usize) -> Vec<u8> {
     // 1. Convert byte slices to i16 samples (little-endian)
     let samples1: Vec<i16> = pcm1
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|chunk| i16::from_le_bytes([chunk[0], chunk[1]]))
         .collect();
 
     let samples2: Vec<i16> = pcm2
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|chunk| i16::from_le_bytes([chunk[0], chunk[1]]))
         .collect();
 
