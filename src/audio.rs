@@ -343,7 +343,9 @@ pub fn seamless_loop(pcm_data: Vec<u8>, target_duration_secs: f32) -> Vec<u8> {
 
     // Convert input to i16 samples once to avoid repeated conversions
     let input_samples: Vec<i16> = pcm_data
-        .chunks_exact(BYTES_PER_SAMPLE)
+        .as_chunks::<BYTES_PER_SAMPLE>()
+        .0
+        .iter()
         .map(|chunk| i16::from_le_bytes([chunk[0], chunk[1]]))
         .collect();
 
@@ -503,7 +505,7 @@ mod tests {
     fn test_seamless_loop_crossfade_logic() {
         // Create 1 second of a constant tone
         let mut pcm_data = Vec::with_capacity(48000);
-        for i in 0..24000 {
+        for _ in 0..24000 {
             pcm_data.extend_from_slice(&(1000i16).to_le_bytes());
         }
 
